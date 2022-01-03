@@ -117,7 +117,7 @@ public class PlanetRenderer implements PlanetListener {
                 glPushName(0);
                 for (int z = z0; z < z1; z++) {
                     var block = planet.getBlock(x, y, z);
-                    if (block != Blocks.AIR
+                    if (!block.isAir()
                         && frustum.isVisible(block.getOutline().moveNew(x, y, z))) {
                         glLoadName(z);
                         glPushName(0);

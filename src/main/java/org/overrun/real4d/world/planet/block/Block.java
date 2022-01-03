@@ -51,7 +51,9 @@ public class Block {
                                      int y,
                                      int z,
                                      int layer) {
-        return !planet.isSolidBlock(x, y, z);
+        return !planet.isSolidBlock(x, y, z)
+            && planet.inIndex(x, y, z)
+            && (planet.isLit(x, y, z) ^ (layer == 1));
     }
 
     public void renderFace(Tesselator t,
@@ -231,6 +233,10 @@ public class Block {
 
     public boolean isSolid() {
         return true;
+    }
+
+    public boolean isAir() {
+        return false;
     }
 
     public AABBox getCollision() {

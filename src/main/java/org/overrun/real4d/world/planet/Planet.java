@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static org.overrun.real4d.util.Registry.BLOCK;
 import static org.overrun.real4d.world.planet.block.Blocks.*;
 
@@ -20,6 +22,7 @@ public class Planet {
     public final int height;
     public final int depth;
     private final int[] blocks;
+    private final int[] lightDepths;
     private final List<PlanetListener> listeners = new ArrayList<>();
     private final Random random = new Random();
     private int unprocessed = 0;
@@ -29,12 +32,14 @@ public class Planet {
         this.height = height;
         this.depth = depth;
         blocks = new int[width * height * depth];
+        lightDepths = new int[width * depth];
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
                 blocks[getIndex(x, 0, z)] = BEDROCK.getRawId();
             }
         }
         generateMap();
+        calcLightDepths(0, 0, width, depth);
     }
 
     private void generateMap() {
@@ -48,6 +53,27 @@ public class Planet {
                 for (int y = 1; y < 5; y++) {
                     if (!genBedrock || y != by) {
                         blocks[getIndex(x, y, z)] = STONE.getRawId();
+                    }
+                }
+            }
+        }
+    }
+
+    public void calcLightDepths(int x0, int z0, int x1, int z1) {
+        for (int x = x0, mx = x0 + x1; x < mx; x++) {
+            for (int z = z0, mz = z0 + z1; z < mz; z++) {
+                int oldDepth = lightDepths[x + z * width];
+                int y = height - 1;
+                while (y > 0 && !isLightBlocker(x, y, z)) {
+                    --y;
+                }
+                lightDepths[x + z * width] = y;
+                if (oldDepth != y) {
+                    // Y-level
+                    int yl0 = min(oldDepth, y);
+                    int yl1 = max(oldDepth, y);
+                    for (var listener : listeners) {
+                        listener.lightColumnChanged(x, z, yl0, yl1);
                     }
                 }
             }
@@ -110,31 +136,40 @@ public class Planet {
     }
 
     public boolean setBlock(int x, int y, int z, Block block) {
-        if (x >= 0 && y >= 0 && z >= 0
-            && x < width && y < height && z < depth) {
-            int i = getIndex(x, y, z);
-            int rid = block.getRawId();
-            if (rid == blocks[i]) {
-                return false;
-            }
-            blocks[i] = rid;
-            for (var listener : listeners) {
-                listener.blockChanged(x, y, z);
-            }
-            return true;
+        if (!inIndex(x, y, z)) {
+            return false;
         }
-        return false;
+        int i = getIndex(x, y, z);
+        int rid = block.getRawId();
+        if (rid == blocks[i]) {
+            return false;
+        }
+        blocks[i] = rid;
+        calcLightDepths(x, z, 1, 1);
+        for (var listener : listeners) {
+            listener.blockChanged(x, y, z);
+        }
+        return true;
     }
 
     public Block getBlock(int x, int y, int z) {
-        return (x >= 0 && y >= 0 && z >= 0
-            && x < width && y < height && z < depth)
+        return inIndex(x, y, z)
             ? BLOCK.get(blocks[getIndex(x, y, z)])
             : AIR;
     }
 
     public int getIndex(int x, int y, int z) {
         return (y * depth + z) * width + x;
+    }
+
+    public boolean inIndex(int x, int y, int z) {
+        return x >= 0 && y >= 0 && z >= 0
+            && x < width && y < height && z < depth;
+    }
+
+    public boolean isLit(int x, int y, int z) {
+        boolean b = y >= lightDepths[x + z * width];
+        return !inIndex(x, y, z) || b;
     }
 
     public boolean isSolidBlock(int x, int y, int z) {

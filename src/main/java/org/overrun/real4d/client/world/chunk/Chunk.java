@@ -62,8 +62,11 @@ public class Chunk {
         for (int x = x0; x < x1; x++) {
             for (int y = y0; y < y1; y++) {
                 for (int z = z0; z < z1; z++) {
-                    planet.getBlock(x, y, z).render(t, planet, layer, x, y, z);
-                    ++blocks;
+                    var block = planet.getBlock(x, y, z);
+                    if (!block.isAir()) {
+                        block.render(t, planet, layer, x, y, z);
+                        ++blocks;
+                    }
                 }
             }
         }

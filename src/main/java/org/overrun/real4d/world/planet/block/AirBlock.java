@@ -61,6 +61,11 @@ public class AirBlock extends Block {
     }
 
     @Override
+    public boolean isAir() {
+        return true;
+    }
+
+    @Override
     public AABBox getOutline() {
         return AABBox.empty();
     }
