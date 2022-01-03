@@ -117,7 +117,8 @@ public class PlanetRenderer implements PlanetListener {
                 glPushName(0);
                 for (int z = z0; z < z1; z++) {
                     var block = planet.getBlock(x, y, z);
-                    if (block != Blocks.AIR && frustum.isVisible(block.getOutline().moveNew(x, y, z))) {
+                    if (block != Blocks.AIR
+                        && frustum.isVisible(block.getOutline().moveNew(x, y, z))) {
                         glLoadName(z);
                         glPushName(0);
                         for (int i = 0; i < 6; i++) {
@@ -144,13 +145,13 @@ public class PlanetRenderer implements PlanetListener {
         glColor4f(1,
             1,
             1,
-            (float) ((Math.sin(System.currentTimeMillis() / 100.0) * 0.2 + 0.4) * 0.5));
+            (float) (Math.sin(System.currentTimeMillis() / 100.0) * 0.2 + 0.4) * 0.5f);
         Blocks.STONE.renderFace(t.init(), h.x, h.y, h.z, h.face);
         t.draw(GL_QUADS);
         glDisable(GL_BLEND);
     }
 
-    public void setDirty(int x0, int y0, int z0, int x1, int y1, int z1) {
+    public void markDirty(int x0, int y0, int z0, int x1, int y1, int z1) {
         x0 /= CHUNK_SIZE;
         x1 /= CHUNK_SIZE;
         y0 /= CHUNK_SIZE;
@@ -188,16 +189,16 @@ public class PlanetRenderer implements PlanetListener {
 
     @Override
     public void blockChanged(int x, int y, int z) {
-        setDirty(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1);
+        markDirty(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1);
     }
 
     @Override
     public void lightColumnChanged(int x, int z, int y0, int y1) {
-        setDirty(x - 1, y0 - 1, z - 1, x + 1, y1 + 1, z + 1);
+        markDirty(x - 1, y0 - 1, z - 1, x + 1, y1 + 1, z + 1);
     }
 
     @Override
     public void allChanged() {
-        setDirty(0, 0, 0, planet.width, planet.height, planet.depth);
+        markDirty(0, 0, 0, planet.width, planet.height, planet.depth);
     }
 }

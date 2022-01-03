@@ -1,7 +1,6 @@
 package org.overrun.real4d.world.planet.block;
 
 import org.overrun.real4d.util.Identifier;
-import org.overrun.real4d.util.Registry;
 import org.overrun.real4d.world.planet.Planet;
 
 import java.util.Random;
@@ -40,6 +39,6 @@ public class GrassBlock extends Block {
 
     @Override
     public Identifier getTexBtm() {
-        return Registry.BLOCK.getId(Blocks.DIRT);
+        return Blocks.DIRT.getId();
     }
 }

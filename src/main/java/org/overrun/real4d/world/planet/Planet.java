@@ -2,13 +2,13 @@ package org.overrun.real4d.world.planet;
 
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.block.Block;
-import org.overrun.real4d.world.planet.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import static org.overrun.real4d.util.Registry.BLOCK;
+import static org.overrun.real4d.world.planet.block.Blocks.*;
 
 /**
  * @author squid233
@@ -31,7 +31,7 @@ public class Planet {
         blocks = new int[width * height * depth];
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
-                blocks[getIndex(x, 0, z)] = BLOCK.getRawId(Blocks.BEDROCK);
+                blocks[getIndex(x, 0, z)] = BEDROCK.getRawId();
             }
         }
         generateMap();
@@ -40,9 +40,16 @@ public class Planet {
     private void generateMap() {
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
-                int id = random.nextInt(1, BLOCK.size());
-                int y = random.nextInt(1, 6);
-                blocks[getIndex(x, y, z)] = id;
+                int by = random.nextInt(1, 5);
+                boolean genBedrock = random.nextBoolean();
+                if (genBedrock) {
+                    blocks[getIndex(x, by, z)] = BEDROCK.getRawId();
+                }
+                for (int y = 1; y < 5; y++) {
+                    if (!genBedrock || y != by) {
+                        blocks[getIndex(x, y, z)] = STONE.getRawId();
+                    }
+                }
             }
         }
     }
@@ -102,26 +109,28 @@ public class Planet {
         return boxes;
     }
 
-    public void setBlock(int x, int y, int z, Block block) {
+    public boolean setBlock(int x, int y, int z, Block block) {
         if (x >= 0 && y >= 0 && z >= 0
             && x < width && y < height && z < depth) {
             int i = getIndex(x, y, z);
-            int rid = BLOCK.getRawId(block);
+            int rid = block.getRawId();
             if (rid == blocks[i]) {
-                return;
+                return false;
             }
             blocks[i] = rid;
             for (var listener : listeners) {
                 listener.blockChanged(x, y, z);
             }
+            return true;
         }
+        return false;
     }
 
     public Block getBlock(int x, int y, int z) {
         return (x >= 0 && y >= 0 && z >= 0
             && x < width && y < height && z < depth)
             ? BLOCK.get(blocks[getIndex(x, y, z)])
-            : Blocks.AIR;
+            : AIR;
     }
 
     public int getIndex(int x, int y, int z) {

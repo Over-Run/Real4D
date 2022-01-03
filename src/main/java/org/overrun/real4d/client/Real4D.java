@@ -17,6 +17,7 @@ import static org.lwjgl.system.MemoryUtil.memFree;
 import static org.overrun.glutils.game.GameEngine.*;
 import static org.overrun.glutils.gl.ll.GLU.gluPerspective;
 import static org.overrun.glutils.gl.ll.GLU.gluPickMatrix;
+import static org.overrun.real4d.client.Frustum.*;
 
 /**
  * @author squid233
@@ -31,6 +32,8 @@ public class Real4D extends Game {
     private PlanetRenderer planetRenderer;
     private Player player;
     private HitResult hitResult;
+    private int lastDestroyTick = 0;
+    private int lastPlaceTick = 0;
 
     /**
      * Init game objects
@@ -151,6 +154,41 @@ public class Real4D extends Game {
 
     @Override
     public void tick() {
+        if (lastDestroyTick > 0) --lastDestroyTick;
+        if (lastPlaceTick > 0) --lastPlaceTick;
+        if (hitResult != null) {
+            if (lastDestroyTick == 0
+                && input.mousePressed(GLFW_MOUSE_BUTTON_LEFT)) {
+                boolean changed = planet.setBlock(hitResult.x,
+                    hitResult.y,
+                    hitResult.z,
+                    Blocks.AIR);
+                if (changed) {
+                    lastDestroyTick = 3;
+                }
+            }
+            if (lastPlaceTick == 0
+                && input.mousePressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+                int x = hitResult.x;
+                int y = hitResult.y;
+                int z = hitResult.z;
+                switch (hitResult.face) {
+                    case LEFT -> --x;
+                    case RIGHT -> ++x;
+                    case BOTTOM -> --y;
+                    case TOP -> ++y;
+                    case BACK -> --z;
+                    case FRONT -> ++z;
+                }
+                boolean changed = planet.setBlock(x,
+                    y,
+                    z,
+                    Blocks.STONE);
+                if (changed) {
+                    lastPlaceTick = 3;
+                }
+            }
+        }
         planet.tick();
         player.tick();
     }

@@ -210,11 +210,11 @@ public class Block {
     }
 
     public Identifier getTexTop() {
-        return Registry.BLOCK.getId(this);
+        return getId();
     }
 
     public Identifier getTexSid() {
-        return Registry.BLOCK.getId(this);
+        return getId();
     }
 
     public Identifier getTexSidOverlay() {
@@ -222,7 +222,7 @@ public class Block {
     }
 
     public Identifier getTexBtm() {
-        return Registry.BLOCK.getId(this);
+        return getId();
     }
 
     public boolean isOpaque() {
@@ -239,5 +239,13 @@ public class Block {
 
     public AABBox getOutline() {
         return AABBox.fullCube();
+    }
+
+    public final Identifier getId() {
+        return Registry.BLOCK.getId(this);
+    }
+
+    public final int getRawId() {
+        return Registry.BLOCK.getRawId(this);
     }
 }
