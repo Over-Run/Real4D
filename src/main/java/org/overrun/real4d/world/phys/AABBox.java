@@ -1,10 +1,14 @@
-package org.overrun.real4d.universe.phys;
+package org.overrun.real4d.world.phys;
+
+import java.util.StringJoiner;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public class AABBox {
+    private static final AABBox FULL_CUBE = new AABBox(0, 0, 0, 1, 1, 1);
+    private static final AABBox EMPTY = new AABBox(0, 0, 0, 0, 0, 0);
     private final float epsilon = 0;
     public float x0;
     public float y0;
@@ -25,6 +29,14 @@ public class AABBox {
         this.x1 = x1;
         this.y1 = y1;
         this.z1 = z1;
+    }
+
+    public static AABBox fullCube() {
+        return FULL_CUBE;
+    }
+
+    public static AABBox empty() {
+        return EMPTY;
     }
 
     public AABBox expand(final float xa,
@@ -150,5 +162,30 @@ public class AABBox {
         x1 += xa;
         y1 += ya;
         z1 += za;
+    }
+
+    public AABBox moveNew(final float xa,
+                          final float ya,
+                          final float za) {
+        return new AABBox(
+            x0 + xa,
+            y0 + ya,
+            z0 + za,
+            x1 + xa,
+            y1 + ya,
+            z1 + za);
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", AABBox.class.getSimpleName() + "[", "]")
+            .add("epsilon=" + epsilon)
+            .add("x0=" + x0)
+            .add("y0=" + y0)
+            .add("z0=" + z0)
+            .add("x1=" + x1)
+            .add("y1=" + y1)
+            .add("z1=" + z1)
+            .toString();
     }
 }

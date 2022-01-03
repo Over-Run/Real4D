@@ -7,13 +7,12 @@ plugins {
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
 
-group 'io.github.over-run'
-archivesBaseName = 'real4d'
-version = '0.1.0-SNAPSHOT'
+group projGroupId
+archivesBaseName = projArtifactId
+version = projVersion
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo1.maven.org/maven2' }
     maven { url 'https://maven.aliyun.com/repository/central' }
     maven { url 'https://jitpack.io' }
     // temporary maven repositories
@@ -22,12 +21,13 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.github.over-run:glutils:1.4.0'
+    implementation 'io.github.over-run:glutils:2.0.0-SNAPSHOT'
     implementation 'com.google.code.gson:gson:2.8.9'
-    compileOnly 'org.jetbrains:annotations:22.0.0'
+    compileOnly 'org.jetbrains:annotations:23.0.0'
     runtimeOnly 'org.lwjgl:lwjgl::natives-windows'
     runtimeOnly 'org.lwjgl:lwjgl-glfw::natives-windows'
     runtimeOnly 'org.lwjgl:lwjgl-opengl::natives-windows'
+    runtimeOnly 'org.lwjgl:lwjgl-stb::natives-windows'
 }
 
 tasks.withType(JavaCompile) {
@@ -37,10 +37,10 @@ tasks.withType(JavaCompile) {
 jar {
     from 'LICENSE'
     manifest {
-        attributes 'Specification-Title': 'Real4D',
+        attributes 'Specification-Title': projName,
                 'Specification-Vendor': 'Overrun Organization',
-                'Specification-Version': '1',
-                'Implementation-Title': 'Real4D',
+                'Specification-Version': '0',
+                'Implementation-Title': projName,
                 'Implementation-Vendor': 'Overrun Organization',
                 'Implementation-Version': archiveVersion
     }
@@ -65,21 +65,32 @@ java {
     withSourcesJar()
 }
 
+javadoc {
+    options {
+        //-encoding utf-8 -charset utf-8 -windowtitle "Real4D x.y.z Javadoc" -link https://docs.oracle.com/en/java/javase/17/docs/api/
+        encoding 'UTF-8'
+        charSet 'UTF-8'
+        author true
+        links 'https://docs.oracle.com/en/java/javase/17/docs/api/'
+        title "Real4D $projVersion Javadoc"
+    }
+}
+
 publishing.publications {
     mavenJava(MavenPublication) {
-        groupId = 'io.github.over-run'
-        artifactId = 'real4d'
-        version = project.version
-        description = 'A sandbox game.'
+        groupId = projGroupId
+        artifactId = projArtifactId
+        version = projVersion
+        description = projDesc
         from components.java
         pom {
-            name = 'Real4D'
-            description = 'A sandbox game.'
-            url = 'https://github.com/Over-Run/Real4D'
+            name = projName
+            description = projDesc
+            url = "https://github.com/$projVcs"
             licenses {
                 license {
                     name = 'The MIT License'
-                    url = 'https://raw.githubusercontent.com/Over-Run/Real4D/0.x/LICENSE'
+                    url = "https://raw.githubusercontent.com/$projVcs/$projBranch/LICENSE"
                 }
             }
             developers {
@@ -90,9 +101,9 @@ publishing.publications {
                 }
             }
             scm {
-                connection = 'https://github.com/Over-Run/Real4D.git'
-                developerConnection = 'https://github.com/Over-Run/Real4D.git'
-                url = 'https://github.com/Over-Run/Real4D'
+                connection = "https://github.com/${projVcs}.git"
+                developerConnection = "https://github.com/${projVcs}.git"
+                url = "https://github.com/$projVcs"
             }
         }
     }

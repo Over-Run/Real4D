@@ -1,9 +1,9 @@
-package org.overrun.real4d.universe.entity;
+package org.overrun.real4d.world.entity;
 
-import org.overrun.real4d.universe.planet.Planet;
+import org.overrun.real4d.world.planet.Planet;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.overrun.real4d.client.input.Keyboard.isKeyDown;
+import static org.overrun.glutils.game.GameEngine.input;
 
 /**
  * @author squid233
@@ -19,24 +19,22 @@ public class Player extends Entity {
     public void tick() {
         super.tick();
         float xa = 0, za = 0;
-        if (isKeyDown(GLFW_KEY_W)) {
+        if (input.keyPressed(GLFW_KEY_W)) {
             --za;
         }
-        if (isKeyDown(GLFW_KEY_S)) {
+        if (input.keyPressed(GLFW_KEY_S)) {
             ++za;
         }
-        if (isKeyDown(GLFW_KEY_A)) {
+        if (input.keyPressed(GLFW_KEY_A)) {
             --xa;
         }
-        if (isKeyDown(GLFW_KEY_D)) {
+        if (input.keyPressed(GLFW_KEY_D)) {
             ++xa;
         }
-        if (isKeyDown(GLFW_KEY_SPACE)
-            //&& onGround
-        ) {
+        if (input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
             yd = 0.5f;
         }
-        moveRelative(xa, za, onGround ? 0.1f : 0.02f);
+        moveRelative(xa, za, onGround ? 0.05f : 0.01f);
         yd -= 0.08;
         move(xd, yd, zd);
         xd *= 0.91;

@@ -1,10 +1,9 @@
-package org.overrun.real4d.universe.entity;
+package org.overrun.real4d.world.entity;
 
-import org.overrun.real4d.universe.phys.AABBox;
-import org.overrun.real4d.universe.planet.Planet;
+import org.overrun.real4d.world.phys.AABBox;
+import org.overrun.real4d.world.planet.Planet;
 
 import static java.lang.Math.*;
-import static org.overrun.real4d.client.input.Mouse.sensitivity;
 
 /**
  * @author squid233
@@ -39,10 +38,6 @@ public class Entity {
         removed = true;
     }
 
-    public void kill() {
-        remove();
-    }
-
     protected void setSize(final float w,
                            final float h) {
         bbWidth = w;
@@ -68,15 +63,18 @@ public class Entity {
 
     public void turn(final float xo,
                      final float yo) {
-        yRot += xo * sensitivity;
-        xRot -= yo * sensitivity;
+        yRot += xo * 0.15;
+        xRot += yo * 0.15;
         if (xRot < -90) {
             xRot = -90;
         }
         if (xRot > 90) {
             xRot = 90;
         }
-        if (yRot > 360) {
+        if (yRot > 180) {
+            yRot = -180;
+        }
+        if (yRot < -360) {
             yRot = 0;
         }
     }
@@ -88,8 +86,18 @@ public class Entity {
         float yaOrg = ya;
         float zaOrg = za;
 
+        var boxes = planet.getCubes(box.expand(xa, ya, za));
+        for (var aabb : boxes) {
+            ya = aabb.clipYCollide(box, ya);
+        }
         box.move(0, ya, 0);
+        for (var aabb : boxes) {
+            xa = aabb.clipXCollide(box, xa);
+        }
         box.move(xa, 0, 0);
+        for (var aabb : boxes) {
+            za = aabb.clipZCollide(box, za);
+        }
         box.move(0, 0, za);
 
         onGround = yaOrg != ya && yaOrg < 0;
