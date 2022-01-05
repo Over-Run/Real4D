@@ -4,11 +4,11 @@ import org.overrun.glutils.game.Game;
 import org.overrun.glutils.game.Texture2D;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.glutils.tex.TexParam;
-import org.overrun.real4d.client.world.renderer.PlanetRenderer;
+import org.overrun.real4d.client.world.render.PlanetRenderer;
+import org.overrun.real4d.world.HitResult;
+import org.overrun.real4d.world.block.Blocks;
 import org.overrun.real4d.world.entity.Player;
-import org.overrun.real4d.world.planet.HitResult;
 import org.overrun.real4d.world.planet.Planet;
-import org.overrun.real4d.world.planet.block.Blocks;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -20,6 +20,7 @@ import static org.overrun.glutils.game.GameEngine.*;
 import static org.overrun.glutils.gl.ll.GLU.gluPerspective;
 import static org.overrun.glutils.gl.ll.GLU.gluPickMatrix;
 import static org.overrun.real4d.client.Frustum.*;
+import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
 
 /**
  * @author squid233
@@ -38,6 +39,7 @@ public class Real4D extends Game {
     private Texture2D widgets;
     private int lastDestroyTick = 0;
     private int lastPlaceTick = 0;
+    private int matHotBarBlock;
 
     /**
      * Init game objects
@@ -64,6 +66,14 @@ public class Real4D extends Game {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW);
+
+        matHotBarBlock = glGenLists(1);
+        glNewList(matHotBarBlock, GL_COMPILE);
+        glScalef(10, -10, 10);
+        glRotatef(30, 1, 0, 0);
+        glRotatef(45, 0, 1, 0);
+        glTranslatef(2.5f, -2, -0.5f);
+        glEndList();
 
         Blocks.register();
         SpriteAtlases.load();
@@ -129,50 +139,73 @@ public class Real4D extends Game {
             planetRenderer.renderHit(hitResult);
             glEnable(GL_ALPHA_TEST);
         }
-        drawGui(bufFrame.width(), bufFrame.height(), delta);
+        final int screenWidth = bufFrame.width() * 240 / bufFrame.height();
+        // height * 240 / height
+        final int screenHeight = 240;
+        drawGui(screenWidth, screenHeight, delta);
+        super.render();
     }
 
     private void drawGui(int width,
                          int height,
                          float delta) {
-        final int screenWidth = width * 240 / height;
-        // height * 240 / height
-        final int screenHeight = 240;
         glClear(GL_DEPTH_BUFFER_BIT);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0, screenWidth, screenHeight, 0, 100, 300);
+        glOrtho(0, width, height, 0, 100, 300);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslatef(0.0F, 0.0F, -200);
 
         Tesselator t = Tesselator.getInstance();
 
-        int wc = screenWidth / 2;
-        int hc = screenHeight / 2;
+        int wc = width / 2;
+        int hc = height / 2;
 
         glColor4f(1, 1, 1, 1);
         // Hot bar
         glEnable(GL_TEXTURE_2D);
+        glDisable(GL_DEPTH_TEST);
         widgets.bind();
         glPushMatrix();
         {
-            final int w = 182;
+            final int w = 202;
             final int h = 22;
-            glTranslatef(wc - w / 2f, screenHeight - 1 - h, 0);
+            glTranslatef(wc - w / 2f, height - h, 0);
             var u0 = 0f;
-            var u1 = 182 / 256f;
+            var u1 = w / 256f;
             var v0 = 0f;
-            var v1 = 22 / 256f;
+            var v1 = h / 256f;
+            var su0 = 0f;
+            var su1 = 24 / 256f;
+            var sv0 = h / 256f;
+            var sv1 = (h + 24) / 256f;
+            var s = player.select;
+            var sx = s * 20 - 1;
             t.init()
                 .vertexUV(0, 0, 0, u0, v0)
                 .vertexUV(0, h, 0, u0, v1)
                 .vertexUV(w, h, 0, u1, v1)
                 .vertexUV(w, 0, 0, u1, v0)
+                .vertexUV(sx, -2, 0, su0, sv0)
+                .vertexUV(sx, 24 - 2, 0, su0, sv1)
+                .vertexUV(sx + 24, 24 - 2, 0, su1, sv1)
+                .vertexUV(sx + 24, -2, 0, su1, sv0)
                 .draw(GL_QUADS);
+        }
+        BLOCK_ATLAS.bind();
+        for (int i = 0; i < player.hotBar.length; i++) {
+            glPushMatrix();
+            glTranslatef(4 + i * 20, 2, 0);
+            glCallList(matHotBarBlock);
+            t.init();
+            player.hotBar[i].render(t, planet, 0, -2, 0, 0);
+            t.draw(GL_QUADS);
+            glPopMatrix();
         }
         glPopMatrix();
         glDisable(GL_TEXTURE_2D);
+        glEnable(GL_DEPTH_TEST);
 
         // Crossing
         glPushMatrix();
@@ -218,10 +251,8 @@ public class Real4D extends Game {
                     case BACK -> --z;
                     case FRONT -> ++z;
                 }
-                boolean changed = planet.setBlock(x,
-                    y,
-                    z,
-                    Blocks.STONE);
+                boolean changed = planet.getBlock(x, y, z).isAir()
+                    && planet.setBlock(x, y, z, player.hotBar[player.select]);
                 if (changed) {
                     lastPlaceTick = 3;
                 }
@@ -306,7 +337,25 @@ public class Real4D extends Game {
         if (key == GLFW_KEY_ESCAPE) {
             window.close();
         }
+        switch (key) {
+            case GLFW_KEY_0 -> player.select = 9;
+            case GLFW_KEY_1 -> player.select = 0;
+            case GLFW_KEY_2 -> player.select = 1;
+            case GLFW_KEY_3 -> player.select = 2;
+            case GLFW_KEY_4 -> player.select = 3;
+            case GLFW_KEY_5 -> player.select = 4;
+            case GLFW_KEY_6 -> player.select = 5;
+            case GLFW_KEY_7 -> player.select = 6;
+            case GLFW_KEY_8 -> player.select = 7;
+            case GLFW_KEY_9 -> player.select = 8;
+        }
         super.keyPressed(key, scancode, mods);
+    }
+
+    @Override
+    public void mouseWheel(double xo, double yo) {
+        player.mouseWheel((int) xo, (int) yo);
+        super.mouseWheel(xo, yo);
     }
 
     @Override

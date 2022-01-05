@@ -1,7 +1,7 @@
 package org.overrun.real4d.util;
 
 import org.jetbrains.annotations.NotNull;
-import org.overrun.real4d.world.planet.block.Block;
+import org.overrun.real4d.world.block.Block;
 
 import java.util.HashMap;
 import java.util.Iterator;

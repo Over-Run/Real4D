@@ -1,6 +1,12 @@
 package org.overrun.real4d.world.phys;
 
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
+
 import java.util.StringJoiner;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 /**
  * @author squid233
@@ -10,12 +16,14 @@ public class AABBox {
     private static final AABBox FULL_CUBE = new AABBox(0, 0, 0, 1, 1, 1);
     private static final AABBox EMPTY = new AABBox(0, 0, 0, 0, 0, 0);
     private final float epsilon = 0;
-    public float x0;
-    public float y0;
-    public float z0;
-    public float x1;
-    public float y1;
-    public float z1;
+    public final Vector3f min;
+    public final Vector3f max;
+
+    public AABBox(final Vector3fc min,
+                  final Vector3fc max) {
+        this.min = new Vector3f(min);
+        this.max = new Vector3f(max);
+    }
 
     public AABBox(final float x0,
                   final float y0,
@@ -23,12 +31,8 @@ public class AABBox {
                   final float x1,
                   final float y1,
                   final float z1) {
-        this.x0 = x0;
-        this.y0 = y0;
-        this.z0 = z0;
-        this.x1 = x1;
-        this.y1 = y1;
-        this.z1 = z1;
+        min = new Vector3f(x0, y0, z0);
+        max = new Vector3f(x1, y1, z1);
     }
 
     public static AABBox fullCube() {
@@ -42,62 +46,40 @@ public class AABBox {
     public AABBox expand(final float xa,
                          final float ya,
                          final float za) {
-        float _x0 = x0;
-        float _y0 = y0;
-        float _z0 = z0;
-        float _x1 = x1;
-        float _y1 = y1;
-        float _z1 = z1;
-        if (xa < 0) {
-            _x0 += xa;
-        }
-        if (xa > 0) {
-            _x1 += xa;
-        }
-        if (ya < 0) {
-            _y0 += ya;
-        }
-        if (ya > 0) {
-            _y1 += ya;
-        }
-        if (za < 0) {
-            _z0 += za;
-        }
-        if (za > 0) {
-            _z1 += za;
-        }
-        return new AABBox(_x0, _y0, _z0, _x1, _y1, _z1);
+        return new AABBox(
+            new Vector3f(min).add(min(xa, 0), min(ya, 0), min(za, 0)),
+            new Vector3f(max).add(max(xa, 0), max(ya, 0), max(za, 0)));
     }
 
     public AABBox grow(final float xa,
                        final float ya,
                        final float za) {
-        float _x0 = x0 - xa;
-        float _y0 = y0 - ya;
-        float _z0 = z0 - za;
-        float _x1 = x1 + xa;
-        float _y1 = y1 + ya;
-        float _z1 = z1 + za;
-        return new AABBox(_x0, _y0, _z0, _x1, _y1, _z1);
+        return new AABBox(
+            new Vector3f(min).sub(xa, ya, za),
+            new Vector3f(max).add(xa, ya, za)
+        );
     }
 
     public float clipXCollide(final AABBox c,
                               float xa) {
         // Check if intersected, if false, then return xa
-        if (c.y1 <= y0 || c.y0 >= y1 || c.z1 <= z0 || c.z0 >= z1) {
+        if (c.max.y <= min.y
+            || c.min.y >= max.y
+            || c.max.z <= min.z
+            || c.min.z >= max.z) {
             return xa;
         }
-        float max;
-        if (xa > 0 && c.x1 <= x0) {
-            max = x0 - c.x1 - epsilon;
-            if (max < xa) {
-                xa = max;
+        float maxA;
+        if (xa > 0 && c.max.x <= min.x) {
+            maxA = min.x - c.max.x - epsilon;
+            if (maxA < xa) {
+                xa = maxA;
             }
         }
-        if (xa < 0 && c.x0 >= x1) {
-            max = x1 - c.x0 + epsilon;
-            if (max > xa) {
-                xa = max;
+        if (xa < 0 && c.min.x >= max.x) {
+            maxA = max.x - c.min.x + epsilon;
+            if (maxA > xa) {
+                xa = maxA;
             }
         }
         return xa;
@@ -106,20 +88,23 @@ public class AABBox {
     public float clipYCollide(final AABBox c,
                               float ya) {
         // Check if intersected, if false, then return ya
-        if (c.x1 <= x0 || c.x0 >= x1 || c.z1 <= z0 || c.z0 >= z1) {
+        if (c.max.x <= min.x
+            || c.min.x >= max.x
+            || c.max.z <= min.z
+            || c.min.z >= max.z) {
             return ya;
         }
-        float max;
-        if (ya > 0 && c.y1 <= y0) {
-            max = y0 - c.y1 - epsilon;
-            if (max < ya) {
-                ya = max;
+        float maxA;
+        if (ya > 0 && c.max.y <= min.y) {
+            maxA = min.y - c.max.y - epsilon;
+            if (maxA < ya) {
+                ya = maxA;
             }
         }
-        if (ya < 0 && c.y0 >= y1) {
-            max = y1 - c.y0 + epsilon;
-            if (max > ya) {
-                ya = max;
+        if (ya < 0 && c.min.y >= max.y) {
+            maxA = max.y - c.min.y + epsilon;
+            if (maxA > ya) {
+                ya = maxA;
             }
         }
         return ya;
@@ -128,64 +113,49 @@ public class AABBox {
     public float clipZCollide(final AABBox c,
                               float za) {
         // Check if intersected, if false, then return za
-        if (c.x1 <= x0 || c.x0 >= x1 || c.y1 <= y0 || c.y0 >= y1) {
+        if (c.max.x <= min.x
+            || c.min.x >= max.x
+            || c.max.y <= min.y
+            || c.min.y >= max.y) {
             return za;
         }
-        float max;
-        if (za > 0 && c.z1 <= z0) {
-            max = z0 - c.z1 - epsilon;
-            if (max < za) {
-                za = max;
+        float maxA;
+        if (za > 0 && c.max.z <= min.z) {
+            maxA = min.z - c.max.z - epsilon;
+            if (maxA < za) {
+                za = maxA;
             }
         }
-        if (za < 0 && c.z0 >= z1) {
-            max = z1 - c.z0 + epsilon;
-            if (max > za) {
-                za = max;
+        if (za < 0 && c.min.z >= max.z) {
+            maxA = max.z - c.min.z + epsilon;
+            if (maxA > za) {
+                za = maxA;
             }
         }
         return za;
     }
 
-    public boolean intersects(final AABBox c) {
-        return c.x1 > x0 && c.x0 < x1
-            && c.y1 > y0 && c.y0 < y1
-            && c.z1 > z0 && c.z0 < z1;
-    }
-
     public void move(final float xa,
                      final float ya,
                      final float za) {
-        x0 += xa;
-        y0 += ya;
-        z0 += za;
-        x1 += xa;
-        y1 += ya;
-        z1 += za;
+        min.add(xa, ya, za);
+        max.add(xa, ya, za);
     }
 
     public AABBox moveNew(final float xa,
                           final float ya,
                           final float za) {
         return new AABBox(
-            x0 + xa,
-            y0 + ya,
-            z0 + za,
-            x1 + xa,
-            y1 + ya,
-            z1 + za);
+            new Vector3f(min).add(xa, ya, za),
+            new Vector3f(max).add(xa, ya, za)
+        );
     }
 
     @Override
     public String toString() {
         return new StringJoiner(", ", AABBox.class.getSimpleName() + "[", "]")
-            .add("epsilon=" + epsilon)
-            .add("x0=" + x0)
-            .add("y0=" + y0)
-            .add("z0=" + z0)
-            .add("x1=" + x1)
-            .add("y1=" + y1)
-            .add("z1=" + z1)
+            .add("min=" + min)
+            .add("max=" + max)
             .toString();
     }
 }

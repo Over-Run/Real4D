@@ -1,5 +1,7 @@
 package org.overrun.real4d.world.entity;
 
+import org.overrun.real4d.world.block.Block;
+import org.overrun.real4d.world.block.Blocks;
 import org.overrun.real4d.world.planet.Planet;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -10,9 +12,20 @@ import static org.overrun.glutils.game.GameEngine.input;
  * @since 0.1.0
  */
 public class Player extends Entity {
+    public final Block[] hotBar = new Block[10];
+    public int select = 0;
+
     public Player(Planet planet) {
         super(planet);
         eyeHeight = 1.62f;
+        hotBar[0] = Blocks.GRASS_BLOCK;
+        hotBar[1] = Blocks.DIRT;
+        hotBar[2] = Blocks.STONE;
+        hotBar[3] = Blocks.COBBLESTONE;
+        hotBar[4] = Blocks.BEDROCK;
+        for (int i = 5; i < hotBar.length; i++) {
+            hotBar[i] = Blocks.AIR;
+        }
     }
 
     @Override
@@ -34,7 +47,7 @@ public class Player extends Entity {
         if (input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
             yd = 0.5f;
         }
-        moveRelative(xa, za, onGround ? 0.05f : 0.01f);
+        moveRelative(xa, za, onGround ? 0.1f : 0.02f);
         yd -= 0.08;
         move(xd, yd, zd);
         xd *= 0.91;
@@ -43,6 +56,15 @@ public class Player extends Entity {
         if (onGround) {
             xd *= 0.7;
             zd *= 0.7;
+        }
+    }
+
+    public void mouseWheel(int xo, int yo) {
+        select -= yo;
+        if (select > 9) {
+            select = 0;
+        } else if (select < 0) {
+            select = 9;
         }
     }
 }

@@ -1,14 +1,14 @@
-package org.overrun.real4d.client.world.renderer;
+package org.overrun.real4d.client.world.render;
 
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.real4d.client.Frustum;
 import org.overrun.real4d.client.world.chunk.Chunk;
 import org.overrun.real4d.world.entity.Player;
-import org.overrun.real4d.world.planet.DirtyChunkSorter;
-import org.overrun.real4d.world.planet.HitResult;
+import org.overrun.real4d.client.world.chunk.DirtyChunkSorter;
+import org.overrun.real4d.world.HitResult;
 import org.overrun.real4d.world.planet.Planet;
 import org.overrun.real4d.world.planet.PlanetListener;
-import org.overrun.real4d.world.planet.block.Blocks;
+import org.overrun.real4d.world.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,12 +99,12 @@ public class PlanetRenderer implements PlanetListener {
         var t = Tesselator.getInstance();
         float r = 5;
         var box = player.box.grow(r, r, r);
-        int x0 = (int) box.x0;
-        int x1 = (int) (box.x1 + 1.0f);
-        int y0 = (int) box.y0;
-        int y1 = (int) (box.y1 + 1.0f);
-        int z0 = (int) box.z0;
-        int z1 = (int) (box.z1 + 1.0f);
+        int x0 = (int) box.min.x;
+        int x1 = (int) (box.max.x + 1);
+        int y0 = (int) box.min.y;
+        int y1 = (int) (box.max.y + 1);
+        int z0 = (int) box.min.z;
+        int z1 = (int) (box.max.z + 1);
 
         glInitNames();
         glPushName(0);

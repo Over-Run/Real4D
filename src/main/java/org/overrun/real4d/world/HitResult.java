@@ -1,4 +1,4 @@
-package org.overrun.real4d.world.planet;
+package org.overrun.real4d.world;
 
 /**
  * @author squid233

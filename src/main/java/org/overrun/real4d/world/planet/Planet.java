@@ -1,7 +1,7 @@
 package org.overrun.real4d.world.planet;
 
+import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.phys.AABBox;
-import org.overrun.real4d.world.planet.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,8 +9,7 @@ import java.util.Random;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static org.overrun.real4d.util.Registry.BLOCK;
-import static org.overrun.real4d.world.planet.block.Blocks.*;
+import static org.overrun.real4d.world.block.Blocks.*;
 
 /**
  * @author squid233
@@ -21,7 +20,7 @@ public class Planet {
     public final int width;
     public final int height;
     public final int depth;
-    private final int[] blocks;
+    private final Block[] blocks;
     private final int[] lightDepths;
     private final List<PlanetListener> listeners = new ArrayList<>();
     private final Random random = new Random();
@@ -31,11 +30,14 @@ public class Planet {
         this.width = width;
         this.height = height;
         this.depth = depth;
-        blocks = new int[width * height * depth];
+        blocks = new Block[width * height * depth];
         lightDepths = new int[width * depth];
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
-                blocks[getIndex(x, 0, z)] = BEDROCK.getRawId();
+                blocks[getIndex(x, 0, z)] = BEDROCK;
+                for (int y = 1; y < height; y++) {
+                    blocks[getIndex(x, y, z)] = AIR;
+                }
             }
         }
         generateMap();
@@ -48,11 +50,11 @@ public class Planet {
                 int by = random.nextInt(1, 5);
                 boolean genBedrock = random.nextBoolean();
                 if (genBedrock) {
-                    blocks[getIndex(x, by, z)] = BEDROCK.getRawId();
+                    blocks[getIndex(x, by, z)] = BEDROCK;
                 }
                 for (int y = 1; y < 5; y++) {
                     if (!genBedrock || y != by) {
-                        blocks[getIndex(x, y, z)] = STONE.getRawId();
+                        blocks[getIndex(x, y, z)] = STONE;
                     }
                 }
             }
@@ -94,12 +96,12 @@ public class Planet {
 
     public List<AABBox> getCubes(AABBox origin) {
         var boxes = new ArrayList<AABBox>();
-        int x0 = (int) origin.x0;
-        int x1 = (int) (origin.x1 + 1);
-        int y0 = (int) origin.y0;
-        int y1 = (int) (origin.y1 + 1);
-        int z0 = (int) origin.z0;
-        int z1 = (int) (origin.z1 + 1);
+        int x0 = (int) origin.min.x;
+        int x1 = (int) (origin.max.x + 1);
+        int y0 = (int) origin.min.y;
+        int y1 = (int) (origin.max.y + 1);
+        int z0 = (int) origin.min.z;
+        int z1 = (int) (origin.max.z + 1);
 
         if (x0 < 0) {
             x0 = 0;
@@ -140,11 +142,10 @@ public class Planet {
             return false;
         }
         int i = getIndex(x, y, z);
-        int rid = block.getRawId();
-        if (rid == blocks[i]) {
+        if (blocks[i] == block) {
             return false;
         }
-        blocks[i] = rid;
+        blocks[i] = block;
         calcLightDepths(x, z, 1, 1);
         for (var listener : listeners) {
             listener.blockChanged(x, y, z);
@@ -154,7 +155,7 @@ public class Planet {
 
     public Block getBlock(int x, int y, int z) {
         return inIndex(x, y, z)
-            ? BLOCK.get(blocks[getIndex(x, y, z)])
+            ? blocks[getIndex(x, y, z)]
             : AIR;
     }
 

@@ -54,6 +54,6 @@ public class Frustum {
     }
 
     public boolean isVisible(AABBox aabb) {
-        return cubeInFrustum(aabb.x0, aabb.y0, aabb.z0, aabb.x1, aabb.y1, aabb.z1);
+        return m_Frustum.testAab(aabb.min, aabb.max);
     }
 }

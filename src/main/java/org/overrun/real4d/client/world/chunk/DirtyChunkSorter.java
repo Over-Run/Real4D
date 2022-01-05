@@ -1,4 +1,4 @@
-package org.overrun.real4d.world.planet;
+package org.overrun.real4d.client.world.chunk;
 
 import org.overrun.real4d.client.Frustum;
 import org.overrun.real4d.client.world.chunk.Chunk;

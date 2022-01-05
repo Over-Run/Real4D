@@ -112,9 +112,9 @@ public class Entity {
             zd = 0;
         }
 
-        x = (box.x0 + box.x1) / 2.0f;
-        y = box.y0;
-        z = (box.z0 + box.z1) / 2.0f;
+        x = (box.min.x + box.max.x) / 2.0f;
+        y = box.min.y;
+        z = (box.min.z + box.max.z) / 2.0f;
     }
 
     public void moveRelative(float xa,
@@ -122,7 +122,7 @@ public class Entity {
                              final float speed) {
         float dist = xa * xa + za * za;
         if (dist >= 0.01) {
-            dist = speed / (float) sqrt(speed);
+            dist = speed / (float) sqrt(dist);
             xa *= dist;
             za *= dist;
             float sin = (float) sin(toRadians(yRot));

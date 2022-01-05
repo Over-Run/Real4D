@@ -1,4 +1,4 @@
-package org.overrun.real4d.world.planet.block;
+package org.overrun.real4d.world.block;
 
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.real4d.util.Identifier;

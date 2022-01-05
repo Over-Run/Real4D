@@ -1,4 +1,4 @@
-package org.overrun.real4d.world.planet.block;
+package org.overrun.real4d.world.block;
 
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.real4d.util.Identifier;
@@ -51,9 +51,9 @@ public class Block {
                                      int y,
                                      int z,
                                      int layer) {
-        return !planet.isSolidBlock(x, y, z)
-            && planet.inIndex(x, y, z)
-            && (planet.isLit(x, y, z) ^ (layer == 1));
+        return !planet.inIndex(x, y, z)
+            || (!planet.isSolidBlock(x, y, z)
+            && (planet.isLit(x, y, z) ^ (layer == 1)));
     }
 
     public void renderFace(Tesselator t,
@@ -166,12 +166,12 @@ public class Block {
                             int z,
                             int face) {
         var outline = getOutline().moveNew(x, y, z);
-        float x0 = outline.x0;
-        float x1 = outline.x1;
-        float y0 = outline.y0;
-        float y1 = outline.y1;
-        float z0 = outline.z0;
-        float z1 = outline.z1;
+        float x0 = outline.min.x;
+        float x1 = outline.max.x;
+        float y0 = outline.min.y;
+        float y1 = outline.max.y;
+        float z0 = outline.min.z;
+        float z1 = outline.max.z;
         switch (face) {
             case LEFT -> t.vertex(x0, y1, z0)
                 .vertex(x0, y0, z0)
