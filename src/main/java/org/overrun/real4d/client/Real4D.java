@@ -1,9 +1,7 @@
 package org.overrun.real4d.client;
 
 import org.overrun.glutils.game.Game;
-import org.overrun.glutils.game.Texture2D;
 import org.overrun.glutils.gl.ll.Tesselator;
-import org.overrun.glutils.tex.TexParam;
 import org.overrun.real4d.client.world.render.PlanetRenderer;
 import org.overrun.real4d.world.HitResult;
 import org.overrun.real4d.world.block.Blocks;
@@ -14,13 +12,17 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.overrun.glutils.game.GameEngine.*;
 import static org.overrun.glutils.gl.ll.GLU.gluPerspective;
 import static org.overrun.glutils.gl.ll.GLU.gluPickMatrix;
+import static org.overrun.real4d.client.gui.DrawableHelper.draw;
 import static org.overrun.real4d.client.Frustum.*;
 import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
+import static org.overrun.real4d.client.SpriteAtlases.WIDGETS_ATLAS;
+import static org.overrun.real4d.client.gui.Widgets.HOT_BAR;
+import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
 
 /**
  * @author squid233
@@ -36,7 +38,6 @@ public class Real4D extends Game {
     private PlanetRenderer planetRenderer;
     private Player player;
     private HitResult hitResult;
-    private Texture2D widgets;
     private int lastDestroyTick = 0;
     private int lastPlaceTick = 0;
     private int matHotBarBlock;
@@ -77,9 +78,6 @@ public class Real4D extends Game {
 
         Blocks.register();
         SpriteAtlases.load();
-        widgets = new Texture2D(Real4D.class,
-            "assets.real4d/textures/gui/widgets.png",
-            TexParam.glNearest());
         planet = new Planet(256, 64, 256);
         planetRenderer = new PlanetRenderer(planet);
         player = new Player(planet);
@@ -155,7 +153,7 @@ public class Real4D extends Game {
         glOrtho(0, width, height, 0, 100, 300);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(0.0F, 0.0F, -200);
+        glTranslatef(0, 0, -200);
 
         Tesselator t = Tesselator.getInstance();
 
@@ -166,32 +164,18 @@ public class Real4D extends Game {
         // Hot bar
         glEnable(GL_TEXTURE_2D);
         glDisable(GL_DEPTH_TEST);
-        widgets.bind();
+        WIDGETS_ATLAS.bind();
         glPushMatrix();
         {
             final int w = 202;
             final int h = 22;
             glTranslatef(wc - w / 2f, height - h, 0);
-            var u0 = 0f;
-            var u1 = w / 256f;
-            var v0 = 0f;
-            var v1 = h / 256f;
-            var su0 = 0f;
-            var su1 = 24 / 256f;
-            var sv0 = h / 256f;
-            var sv1 = (h + 24) / 256f;
             var s = player.select;
             var sx = s * 20 - 1;
-            t.init()
-                .vertexUV(0, 0, 0, u0, v0)
-                .vertexUV(0, h, 0, u0, v1)
-                .vertexUV(w, h, 0, u1, v1)
-                .vertexUV(w, 0, 0, u1, v0)
-                .vertexUV(sx, -2, 0, su0, sv0)
-                .vertexUV(sx, 24 - 2, 0, su0, sv1)
-                .vertexUV(sx + 24, 24 - 2, 0, su1, sv1)
-                .vertexUV(sx + 24, -2, 0, su1, sv0)
-                .draw(GL_QUADS);
+            t.init();
+            draw(t, WIDGETS_ATLAS, HOT_BAR, 0, 0, w, h);
+            draw(t, WIDGETS_ATLAS, HOT_BAR_SELECT, sx, -2, 24, 24);
+            t.draw(GL_QUADS);
         }
         BLOCK_ATLAS.bind();
         for (int i = 0; i < player.hotBar.length; i++) {
@@ -210,16 +194,26 @@ public class Real4D extends Game {
         // Crossing
         glPushMatrix();
         glTranslatef(wc, hc, 0);
+        glDisable(GL_ALPHA_TEST);
+        glEnable(GL_BLEND);
+        glBlendFuncSeparate(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(1, 1, 1, 0.5f);
         t.init()
             .vertex(1, -4, 0)
             .vertex(0, -4, 0)
             .vertex(0, 5, 0)
             .vertex(1, 5, 0)
             .vertex(5, 0, 0)
+            .vertex(1, 0, 0)
+            .vertex(1, 1, 0)
+            .vertex(5, 1, 0)
+            .vertex(0, 0, 0)
             .vertex(-4, 0, 0)
             .vertex(-4, 1, 0)
-            .vertex(5, 1, 0)
+            .vertex(0, 1, 0)
             .draw(GL_QUADS);
+        glDisable(GL_BLEND);
+        glEnable(GL_ALPHA_TEST);
         glPopMatrix();
     }
 
@@ -365,7 +359,6 @@ public class Real4D extends Game {
 
     @Override
     public void free() {
-        widgets.free();
         memFree(viewportBuffer);
         memFree(selectBuffer);
         memFree(lightingBuffer);

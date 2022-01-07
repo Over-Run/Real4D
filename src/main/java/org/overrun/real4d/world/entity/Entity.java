@@ -67,15 +67,13 @@ public class Entity {
         xRot += yo * 0.15;
         if (xRot < -90) {
             xRot = -90;
-        }
-        if (xRot > 90) {
+        } else if (xRot > 90) {
             xRot = 90;
         }
         if (yRot > 180) {
             yRot = -180;
-        }
-        if (yRot < -360) {
-            yRot = 0;
+        } else if (yRot < -180) {
+            yRot = 180;
         }
     }
 
@@ -120,15 +118,20 @@ public class Entity {
     public void moveRelative(float xa,
                              float za,
                              final float speed) {
-        float dist = xa * xa + za * za;
+        var dist = xa * xa + za * za;
         if (dist >= 0.01) {
             dist = speed / (float) sqrt(dist);
             xa *= dist;
             za *= dist;
-            float sin = (float) sin(toRadians(yRot));
-            float cos = (float) cos(toRadians(yRot));
+            var rad = toRadians(yRot);
+            var sin = sin(rad);
+            var cos = cos(rad);
             xd += xa * cos - za * sin;
             zd += za * cos + xa * sin;
         }
+    }
+
+    public boolean isLit() {
+        return planet.isLit((int) x, (int) y, (int) z);
     }
 }
