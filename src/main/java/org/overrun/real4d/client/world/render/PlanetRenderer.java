@@ -1,14 +1,15 @@
 package org.overrun.real4d.client.world.render;
 
 import org.overrun.glutils.gl.ll.Tesselator;
+import org.overrun.glutils.light.Direction;
 import org.overrun.real4d.client.Frustum;
 import org.overrun.real4d.client.world.chunk.Chunk;
-import org.overrun.real4d.world.entity.Player;
 import org.overrun.real4d.client.world.chunk.DirtyChunkSorter;
 import org.overrun.real4d.world.HitResult;
+import org.overrun.real4d.world.block.Blocks;
+import org.overrun.real4d.world.entity.Player;
 import org.overrun.real4d.world.planet.Planet;
 import org.overrun.real4d.world.planet.PlanetListener;
-import org.overrun.real4d.world.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,12 +122,22 @@ public class PlanetRenderer implements PlanetListener {
                         && frustum.isVisible(block.getOutline().moveNew(x, y, z))) {
                         glLoadName(z);
                         glPushName(0);
+
                         for (int i = 0; i < 6; i++) {
                             glLoadName(i);
-                            t.init();
-                            block.pickOutline(t, x, y, z, i);
-                            t.draw(GL_QUADS);
+                            var vec = Direction.getById(i);
+                            if (block.shouldRenderFace(planet,
+                                x + vec.getAxisX(),
+                                y + vec.getAxisY(),
+                                z + vec.getAxisZ(),
+                                0)
+                            ) {
+                                t.init();
+                                block.pickOutline(t, x, y, z, vec);
+                                t.draw(GL_QUADS);
+                            }
                         }
+
                         glPopName();
                     }
                 }
@@ -146,7 +157,8 @@ public class PlanetRenderer implements PlanetListener {
             1,
             1,
             (float) (Math.sin(System.currentTimeMillis() / 100.0) * 0.2 + 0.4) * 0.5f);
-        Blocks.STONE.renderFace(t.init(), h.x, h.y, h.z, h.face);
+        t.init();
+        Blocks.STONE.renderFace(t, h.x, h.y, h.z, h.face);
         t.draw(GL_QUADS);
         glDisable(GL_BLEND);
     }

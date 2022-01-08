@@ -1,7 +1,12 @@
 package org.overrun.real4d.client;
 
+import org.overrun.glutils.GLUtils;
 import org.overrun.glutils.game.Game;
 import org.overrun.glutils.gl.ll.Tesselator;
+import org.overrun.glutils.light.Direction;
+import org.overrun.real4d.client.gui.screen.PausingScreen;
+import org.overrun.real4d.client.world.Skybox;
+import org.overrun.real4d.client.world.chunk.Chunk;
 import org.overrun.real4d.client.world.render.PlanetRenderer;
 import org.overrun.real4d.world.HitResult;
 import org.overrun.real4d.world.block.Blocks;
@@ -12,15 +17,14 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.overrun.glutils.game.GameEngine.*;
 import static org.overrun.glutils.gl.ll.GLU.gluPerspective;
 import static org.overrun.glutils.gl.ll.GLU.gluPickMatrix;
-import static org.overrun.real4d.client.gui.DrawableHelper.draw;
-import static org.overrun.real4d.client.Frustum.*;
 import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
 import static org.overrun.real4d.client.SpriteAtlases.WIDGETS_ATLAS;
+import static org.overrun.real4d.client.gui.DrawableHelper.draw;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
 
@@ -34,6 +38,10 @@ public class Real4D extends Game {
     private final IntBuffer viewportBuffer = memAllocInt(16);
     private final IntBuffer selectBuffer = memAllocInt(2000);
     private final FloatBuffer lightingBuffer = memAllocFloat(16);
+    private final float[] fogColor0 = {0xfe / 255f, 0xfb / 255f, 0xfa / 255f, 1};
+    private final float[] fogColor1 = {0x0e / 255f, 0x0b / 255f, 0x0a / 255f, 1};
+    public boolean enableFog = false;
+    private Skybox skybox;
     private Planet planet;
     private PlanetRenderer planetRenderer;
     private Player player;
@@ -41,6 +49,7 @@ public class Real4D extends Game {
     private int lastDestroyTick = 0;
     private int lastPlaceTick = 0;
     private int matHotBarBlock;
+    private boolean isPaused;
 
     /**
      * Init game objects
@@ -48,6 +57,7 @@ public class Real4D extends Game {
      */
     @Override
     public void create() {
+        GLUtils.printLibInfo();
         var vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         if (vidMode != null) {
             window.setPos(
@@ -75,6 +85,8 @@ public class Real4D extends Game {
         glRotatef(45, 0, 1, 0);
         glTranslatef(2.5f, -2, -0.5f);
         glEndList();
+
+        skybox = new Skybox();
 
         Blocks.register();
         SpriteAtlases.load();
@@ -112,7 +124,10 @@ public class Real4D extends Game {
             }
         }
         if (hitNameCount > 0) {
-            hitResult = new HitResult(names[1], names[2], names[3], names[4]);
+            hitResult = new HitResult(names[1],
+                names[2],
+                names[3],
+                Direction.getById(names[4]));
         } else {
             hitResult = null;
         }
@@ -124,14 +139,17 @@ public class Real4D extends Game {
         pick(delta);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setupCamera(delta);
+        skybox.render(0, 0, 0, 1, 0.5f, 1);
         glEnable(GL_CULL_FACE);
         planetRenderer.updateDirtyChunks(player);
         setupFog(0);
+        if (enableFog) glEnable(GL_FOG);
         planetRenderer.render(0);
         setupFog(1);
         planetRenderer.render(1);
         glDisable(GL_LIGHTING);
         glDisable(GL_TEXTURE_2D);
+        if (enableFog) glDisable(GL_FOG);
         if (hitResult != null) {
             glDisable(GL_ALPHA_TEST);
             planetRenderer.renderHit(hitResult);
@@ -163,7 +181,6 @@ public class Real4D extends Game {
         glColor4f(1, 1, 1, 1);
         // Hot bar
         glEnable(GL_TEXTURE_2D);
-        glDisable(GL_DEPTH_TEST);
         WIDGETS_ATLAS.bind();
         glPushMatrix();
         {
@@ -180,7 +197,7 @@ public class Real4D extends Game {
         BLOCK_ATLAS.bind();
         for (int i = 0; i < player.hotBar.length; i++) {
             glPushMatrix();
-            glTranslatef(4 + i * 20, 2, 0);
+            glTranslatef(4 + i * 20, 1, 20);
             glCallList(matHotBarBlock);
             t.init();
             player.hotBar[i].render(t, planet, 0, -2, 0, 0);
@@ -189,14 +206,13 @@ public class Real4D extends Game {
         }
         glPopMatrix();
         glDisable(GL_TEXTURE_2D);
-        glEnable(GL_DEPTH_TEST);
 
         // Crossing
         glPushMatrix();
         glTranslatef(wc, hc, 0);
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
-        glBlendFuncSeparate(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
         glColor4f(1, 1, 1, 0.5f);
         t.init()
             .vertex(1, -4, 0)
@@ -234,17 +250,10 @@ public class Real4D extends Game {
             }
             if (lastPlaceTick == 0
                 && input.mousePressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-                int x = hitResult.x;
-                int y = hitResult.y;
-                int z = hitResult.z;
-                switch (hitResult.face) {
-                    case LEFT -> --x;
-                    case RIGHT -> ++x;
-                    case BOTTOM -> --y;
-                    case TOP -> ++y;
-                    case BACK -> --z;
-                    case FRONT -> ++z;
-                }
+                var face = hitResult.face;
+                int x = hitResult.x += face.getAxisX();
+                int y = hitResult.y += face.getAxisY();
+                int z = hitResult.z += face.getAxisZ();
                 boolean changed = planet.getBlock(x, y, z).isAir()
                     && planet.setBlock(x, y, z, player.hotBar[player.select]);
                 if (changed) {
@@ -269,10 +278,17 @@ public class Real4D extends Game {
     private void setupCamera(float delta) {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        gluPerspective(90,
+        var fovy = 90f;
+        if (player.isRunning) {
+            fovy += 5f;
+        }
+        if (input.keyPressed(GLFW_KEY_C)) {
+            fovy -= 25f;
+        }
+        gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
             0.05f,
-            1000.0f);
+            4000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         moveCameraToPlayer(delta);
@@ -285,10 +301,17 @@ public class Real4D extends Game {
         glLoadIdentity();
         glGetIntegerv(GL_VIEWPORT, viewportBuffer.clear());
         gluPickMatrix(x, y, 5, 5, viewportBuffer.flip().limit(16));
-        gluPerspective(90,
+        var fovy = 90f;
+        if (player.isRunning) {
+            fovy += 5f;
+        }
+        if (input.keyPressed(GLFW_KEY_C)) {
+            fovy -= 25f;
+        }
+        gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
             0.05f,
-            1000.0f);
+            4000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         moveCameraToPlayer(delta);
@@ -296,8 +319,20 @@ public class Real4D extends Game {
 
     private void setupFog(int layer) {
         switch (layer) {
-            case 0 -> glDisable(GL_LIGHTING);
+            case 0 -> {
+                if (enableFog) {
+                    glFogi(GL_FOG_MODE, GL_EXP);
+                    glFogf(GL_FOG_DENSITY, 0.001f);
+                    glFogfv(GL_FOG_COLOR, fogColor0);
+                }
+                glDisable(GL_LIGHTING);
+            }
             case 1 -> {
+                if (enableFog) {
+                    glFogi(GL_FOG_MODE, GL_EXP);
+                    glFogf(GL_FOG_DENSITY, 0.06f);
+                    glFogfv(GL_FOG_COLOR, fogColor1);
+                }
                 glEnable(GL_LIGHTING);
                 glEnable(GL_COLOR_MATERIAL);
                 // Brightness
@@ -317,6 +352,11 @@ public class Real4D extends Game {
     }
 
     @Override
+    public void passedFrame() {
+        Chunk.updates = 0;
+    }
+
+    @Override
     public void cursorPosCb(int x, int y) {
         if (window.isGrabbed()) {
             float xo = input.getDeltaMX();
@@ -329,7 +369,14 @@ public class Real4D extends Game {
     @Override
     public void keyPressed(int key, int scancode, int mods) {
         if (key == GLFW_KEY_ESCAPE) {
-            window.close();
+            isPaused = !isPaused;
+            window.setGrabbed(!isPaused);
+            timer.setTimeScale(isPaused ? 0 : 1);
+            if (isPaused) {
+                openScreen(new PausingScreen(null));
+            } else {
+                openScreen(null);
+            }
         }
         switch (key) {
             case GLFW_KEY_0 -> player.select = 9;
@@ -362,6 +409,7 @@ public class Real4D extends Game {
         memFree(viewportBuffer);
         memFree(selectBuffer);
         memFree(lightingBuffer);
+        skybox.free();
         SpriteAtlases.free();
     }
 }

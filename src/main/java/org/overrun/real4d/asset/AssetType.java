@@ -5,6 +5,7 @@ package org.overrun.real4d.asset;
  * @since 0.1.0
  */
 public enum AssetType {
+    SHADERS("shaders"),
     TEXTURES("textures");
 
     private final String type;

@@ -1,10 +1,12 @@
 package org.overrun.real4d.util;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * @author squid233
  * @since 0.1.0
  */
-public class Identifier {
+public class Identifier implements CharSequence {
     public static final String REAL4D = "real4d";
     public final String namespace;
     public final String path;
@@ -39,6 +41,22 @@ public class Identifier {
 
     public String asset() {
         return "assets." + namespace + "/" + path;
+    }
+
+    @Override
+    public int length() {
+        return toString().length();
+    }
+
+    @Override
+    public char charAt(int index) {
+        return toString().charAt(index);
+    }
+
+    @NotNull
+    @Override
+    public CharSequence subSequence(int start, int end) {
+        return toString().subSequence(start, end);
     }
 
     @Override

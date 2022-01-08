@@ -2,10 +2,7 @@ package org.overrun.real4d.client;
 
 import org.overrun.glutils.game.Texture2D;
 import org.overrun.glutils.tex.TexParam;
-import org.overrun.glutils.tex.stitch.Block;
-import org.overrun.glutils.tex.stitch.Sprite;
-import org.overrun.glutils.tex.stitch.SpriteAtlas;
-import org.overrun.glutils.tex.stitch.Stitcher;
+import org.overrun.glutils.tex.stitch.*;
 import org.overrun.real4d.asset.AssetManager;
 import org.overrun.real4d.asset.AssetType;
 import org.overrun.real4d.client.gui.Widgets;
@@ -13,10 +10,8 @@ import org.overrun.real4d.client.model.BlockModels;
 import org.overrun.real4d.util.Identifier;
 import org.overrun.real4d.util.Registry;
 
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
 
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
@@ -26,7 +21,7 @@ import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
  * @since 0.1.0
  */
 public class SpriteAtlases {
-    public static SpriteAtlas BLOCK_ATLAS;
+    public static StrSpriteAtlas BLOCK_ATLAS;
     public static Real4DAtlas WIDGETS_ATLAS;
 
     public static void load() {
@@ -55,14 +50,13 @@ public class SpriteAtlases {
         WIDGETS_ATLAS = new Real4DAtlas(widgets.width(),
             widgets.height(),
             widgets.getId(),
-            Map.ofEntries(
-                new SimpleImmutableEntry<>(HOT_BAR, new Sprite(HOT_BAR.toString(),
-                    Block.of(0, 0, 202, 22),
-                    null)),
-                new SimpleImmutableEntry<>(HOT_BAR_SELECT, new Sprite(HOT_BAR_SELECT.toString(),
-                    Block.of(0, 22, 24, 24),
-                    null))
-            ));
+            new Sprite(HOT_BAR,
+                Block.of(0, 0, 202, 22),
+                null),
+            new Sprite(HOT_BAR_SELECT,
+                Block.of(0, 22, 24, 24),
+                null)
+        );
     }
 
     public static void free() {

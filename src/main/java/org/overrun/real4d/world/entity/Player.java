@@ -14,10 +14,12 @@ import static org.overrun.glutils.game.GameEngine.input;
 public class Player extends Entity {
     public final Block[] hotBar = new Block[10];
     public int select = 0;
+    public boolean isSneaking;
+    public boolean isRunning;
 
     public Player(Planet planet) {
         super(planet);
-        eyeHeight = bbHeight - 0.18f;
+        eyeHeight = 1.62f;
         hotBar[0] = Blocks.GRASS_BLOCK;
         hotBar[1] = Blocks.DIRT;
         hotBar[2] = Blocks.STONE;
@@ -49,12 +51,33 @@ public class Player extends Entity {
         }
         if (input.keyPressed(GLFW_KEY_LEFT_SHIFT)
             || input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
+            isSneaking = true;
             bbHeight = 1.5f;
+            eyeHeight = 1.32f;
         } else {
+            isSneaking = false;
             bbHeight = 1.8f;
+            eyeHeight = 1.62f;
         }
-        eyeHeight = bbHeight - 0.18f;
-        moveRelative(xa, za, onGround ? 0.1f : 0.02f);
+        isRunning = input.keyPressed(GLFW_KEY_LEFT_CONTROL)
+            || input.keyPressed(GLFW_KEY_RIGHT_CONTROL);
+        float speed;
+        if (onGround) {
+            if (isSneaking) {
+                speed = 0.05f;
+            } else if (isRunning) {
+                speed = 0.2f;
+            } else {
+                speed = 0.1f;
+            }
+        } else {
+            if (isRunning) {
+                speed = 0.04f;
+            } else {
+                speed = 0.02f;
+            }
+        }
+        moveRelative(xa, za, speed);
         yd -= 0.08;
         move(xd, yd, zd);
         xd *= 0.91;

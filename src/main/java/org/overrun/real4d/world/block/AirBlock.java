@@ -1,6 +1,7 @@
 package org.overrun.real4d.world.block;
 
 import org.overrun.glutils.gl.ll.Tesselator;
+import org.overrun.glutils.light.Direction;
 import org.overrun.real4d.util.Identifier;
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.Planet;
@@ -24,7 +25,7 @@ public class AirBlock extends Block {
                            int x,
                            int y,
                            int z,
-                           int face) {
+                           Direction face) {
     }
 
     @Override
@@ -32,7 +33,7 @@ public class AirBlock extends Block {
                             int x,
                             int y,
                             int z,
-                            int face) {
+                            Direction face) {
     }
 
     @Override
