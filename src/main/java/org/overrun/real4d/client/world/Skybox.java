@@ -1,31 +1,39 @@
 package org.overrun.real4d.client.world;
 
-import org.overrun.glutils.gl.ll.Tesselator;
-import org.overrun.glutils.tex.TexParam;
-import org.overrun.glutils.tex.stitch.Stitcher;
-import org.overrun.glutils.tex.stitch.StrSpriteAtlas;
+import org.joml.Matrix4f;
+import org.lwjgl.system.MemoryStack;
+import org.overrun.glutils.gl.GLProgram;
+import org.overrun.glutils.gl.Vao;
+import org.overrun.glutils.gl.Vbo;
+import org.overrun.glutils.gl.VertexAttrib;
+import org.overrun.glutils.tex.Images;
+import org.overrun.glutils.tex.Textures;
+import org.overrun.real4d.asset.AssetManager;
+import org.overrun.real4d.asset.AssetType;
+import org.overrun.real4d.client.gl.GLMatrix;
 import org.overrun.real4d.util.Identifier;
 
-import static org.lwjgl.opengl.GL12.*;
-import static org.overrun.real4d.asset.AssetManager.makePath;
-import static org.overrun.real4d.asset.AssetType.TEXTURES;
+import java.io.BufferedInputStream;
+
+import static java.util.Objects.requireNonNull;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.stb.STBImage.*;
+import static org.lwjgl.system.MemoryUtil.memAlloc;
+import static org.lwjgl.system.MemoryUtil.memFree;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public class Skybox {
-    public static final int MAP_WIDTH = 2048;
-    public static final int CELL_WIDTH = 16;
-    public static final int MAP = MAP_WIDTH * CELL_WIDTH / 2;
     private static final float[] skyboxVertices = {
         // positions
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, -1.0f,
+        -1.0f, 1.0f, -1.0f,
 
         -1.0f, -1.0f, 1.0f,
         -1.0f, -1.0f, -1.0f,
@@ -69,24 +77,56 @@ public class Skybox {
         BOTTOM = new Identifier("skybox/bottom.jpg"),
         FRONT = new Identifier("skybox/front.jpg"),
         BACK = new Identifier("skybox/back.jpg");
-    //public final int id = Textures.gen();
-    public final StrSpriteAtlas atlas;
+    private static final Matrix4f matrix = new Matrix4f();
+    public final int id = Textures.gen();
+    public final Vao vao = new Vao();
+    public final Vbo vbo = new Vbo(GL_ARRAY_BUFFER);
+    public final VertexAttrib vertexAttrib = new VertexAttrib(0);
+    public final GLProgram program = new GLProgram();
 
     public Skybox() {
-        //glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-        atlas = Stitcher.stitchStb(Skybox.class,
-            new TexParam()
-                .minFilter(GL_LINEAR_MIPMAP_NEAREST)
-                .magFilter(GL_LINEAR)
-                .wrapS(GL_CLAMP_TO_EDGE)
-                .wrapT(GL_CLAMP_TO_EDGE),
-            makePath(TEXTURES, RIGHT),
-            makePath(TEXTURES, LEFT),
-            makePath(TEXTURES, TOP),
-            makePath(TEXTURES, BOTTOM),
-            makePath(TEXTURES, FRONT),
-            makePath(TEXTURES, BACK));
-        /*var bytes = new ArrayList<Byte>();
+        program.createVsh("""
+            #version 330
+            layout (location = 0) in vec3 aPos;
+            out vec3 TexCoords;
+            uniform mat4 proj, view;
+            void main() {
+                TexCoords = aPos;
+                vec4 pos = proj * view * vec4(aPos, 1.0);
+                gl_Position = pos.xyww;
+            }""");
+        program.createFsh("""
+            #version 330
+            out vec4 FragColor;
+            in vec3 TexCoords;
+            uniform samplerCube skybox;
+            void main() {
+                FragColor = texture(skybox, TexCoords);
+            }""");
+        program.link();
+        vao.bind();
+        vbo.bind();
+        vbo.data(skyboxVertices, GL_STATIC_DRAW);
+        vertexAttrib.enable();
+        vertexAttrib.pointer(3,
+            GL_FLOAT,
+            false,
+            0,
+            0);
+        vbo.unbind();
+        vao.unbind();
+        program.bind();
+        program.setUniform("skybox", 0);
+        program.unbind();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+        var faces = new Identifier[]{
+            RIGHT,
+            LEFT,
+            TOP,
+            BOTTOM,
+            FRONT,
+            BACK
+        };
         try (var stack = MemoryStack.stackPush()) {
             var pw = stack.mallocInt(1);
             var ph = stack.mallocInt(1);
@@ -101,21 +141,13 @@ public class Skybox {
                     Skybox.class.getClassLoader()
                         .getResourceAsStream(face)
                 ); var bis = new BufferedInputStream(is)) {
-                    int read;
-                    while ((read = bis.read()) != -1) {
-                        bytes.add((byte) read);
-                    }
-                    var arr = new byte[bytes.size()];
-                    for (int j = 0; j < arr.length; j++) {
-                        arr[j] = bytes.get(j);
-                    }
-                    var bb = MemoryUtil.memAlloc(arr.length).put(arr).flip();
+                    var arr = bis.readAllBytes();
+                    var bb = memAlloc(arr.length).put(arr).flip();
                     var data = stbi_load_from_memory(bb,
                         pw,
                         ph,
                         pc,
                         STBI_rgb);
-                    bytes.clear();
                     if (data == null) {
                         Images.thrRE(face);
                     }
@@ -129,9 +161,7 @@ public class Skybox {
                         GL_UNSIGNED_BYTE,
                         data);
                     stbi_image_free(data);
-                }
-                if (hasGenMipmap()) {
-                    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+                    memFree(bb);
                 }
                 ++i;
             }
@@ -140,85 +170,34 @@ public class Skybox {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        } catch (IOException e) {
+            Textures.genMipmapCubeMap();
+        } catch (Exception e) {
             throw new RuntimeException();
-        }*/
+        }
     }
 
-    public void render(float x,
-                       float y,
-                       float z,
-                       float bw,
-                       float bh,
-                       float bd) {
-        boolean isLit = glGetBoolean(GL_LIGHTING);
-
-        float w = MAP * bw / (MAP_WIDTH / 128f);
-        float h = MAP * bh / (MAP_WIDTH / 128f);
-        float d = MAP * bd / (MAP_WIDTH / 128f);
-
-        x += MAP / 8f - w / 2;
-        y += MAP / 24f - h / 2;
-        z += MAP / 8f - d / 2;
-
-        if (isLit) glDisable(GL_LIGHTING);
-
-        glPushMatrix();
-        glTranslatef(-x, -y, -z);
-        /*x=0;
-        y=0;
-        z=0;
-        w=1;
-        h=1;
-        d=1;*/
-
-        glEnable(GL_TEXTURE_2D);
-        glDisable(GL_CULL_FACE);
-        atlas.bind();
-        var right = makePath(TEXTURES, RIGHT);
-        var ru0 = atlas.getU0(right);
-        var rv0 = atlas.getV0(right);
-        var ru1 = atlas.getU1(right);
-        var rv1 = atlas.getV1(right);
-        var back = makePath(TEXTURES, BACK);
-        var bu0 = atlas.getU0(back);
-        var bv0 = atlas.getV0(back);
-        var bu1 = atlas.getU1(back);
-        var bv1 = atlas.getV1(back);
-        Tesselator.getInstance().init()
-            /*.vertexUV(x + w, y, z, ru0, rv1)
-            .vertexUV(x + w, y, z + d, ru1, rv1)
-            .vertexUV(x + w, y + h, z + d, ru1, rv0)
-            .vertexUV(x + w, y + h, z, ru0, rv0)*/
-            .vertexUV(x+w, y+h, z, ru0, rv0)
-            .vertexUV(x+w, y, z, ru0, rv1)
-            .vertexUV(x+w, y, z+d, ru1, rv1)
-            .vertexUV(x+w, y+h, z+d, ru1, rv0)
-            .draw(GL_QUADS);
-        glDisable(GL_TEXTURE_2D);
-        glEnable(GL_CULL_FACE);
-
-        glPopMatrix();
-
-        if (isLit) glEnable(GL_LIGHTING);
-
-        /*glDepthMask(false);
-        glEnable(GL_TEXTURE_CUBE_MAP);
+    public void render() {
+        program.bind();
+        program.setUniformMat4("proj", GLMatrix.getProjection());
+        var view = GLMatrix.getModelview();
+        program.setUniformMat4("view", matrix.set(
+            view.m00(), view.m01(), view.m02(), 0,
+            view.m10(), view.m11(), view.m12(), 0,
+            view.m20(), view.m21(), view.m22(), 0,
+            0, 0, 0, 0
+        ));
+        vao.bind();
+        Textures.active(0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-        glBegin(GL_TRIANGLES);
-        for (int i = 0; i < skyboxVertices.length; i += 3) {
-            var x = skyboxVertices[i];
-            var y = skyboxVertices[i + 1];
-            var z = skyboxVertices[i + 2];
-            glTexCoord3f(x, y, z);
-            glVertex3f(x, y, z);
-        }
-        glEnd();
-        glDisable(GL_TEXTURE_CUBE_MAP);
-        glDepthMask(true);*/
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        vao.unbind();
+        program.unbind();
     }
 
     public void free() {
-        atlas.free();
+        vao.free();
+        vbo.free();
+        program.free();
+        glDeleteTextures(id);
     }
 }

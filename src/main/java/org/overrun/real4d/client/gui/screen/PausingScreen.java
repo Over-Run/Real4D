@@ -28,12 +28,12 @@ public class PausingScreen extends BaseScreen {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glColor4f(0, 0, 0, 0.5f);
-        t.init()
+        t.init(GL_QUADS)
             .vertex(0, 0, 0)
             .vertex(0, height, 0)
             .vertex(width, height, 0)
             .vertex(width, 0, 0)
-            .draw(GL_QUADS);
+            .draw();
         glDisable(GL_BLEND);
         glEnable(GL_ALPHA_TEST);
         glEnable(GL_DEPTH_TEST);

@@ -139,7 +139,6 @@ public class Real4D extends Game {
         pick(delta);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setupCamera(delta);
-        skybox.render(0, 0, 0, 1, 0.5f, 1);
         glEnable(GL_CULL_FACE);
         planetRenderer.updateDirtyChunks(player);
         setupFog(0);
@@ -155,6 +154,7 @@ public class Real4D extends Game {
             planetRenderer.renderHit(hitResult);
             glEnable(GL_ALPHA_TEST);
         }
+        skybox.render();
         final int screenWidth = bufFrame.width() * 240 / bufFrame.height();
         // height * 240 / height
         final int screenHeight = 240;
@@ -173,7 +173,7 @@ public class Real4D extends Game {
         glLoadIdentity();
         glTranslatef(0, 0, -200);
 
-        Tesselator t = Tesselator.getInstance();
+        var t = Tesselator.getInstance();
 
         int wc = width / 2;
         int hc = height / 2;
@@ -189,19 +189,19 @@ public class Real4D extends Game {
             glTranslatef(wc - w / 2f, height - h, 0);
             var s = player.select;
             var sx = s * 20 - 1;
-            t.init();
+            t.init(GL_QUADS);
             draw(t, WIDGETS_ATLAS, HOT_BAR, 0, 0, w, h);
             draw(t, WIDGETS_ATLAS, HOT_BAR_SELECT, sx, -2, 24, 24);
-            t.draw(GL_QUADS);
+            t.draw();
         }
         BLOCK_ATLAS.bind();
         for (int i = 0; i < player.hotBar.length; i++) {
             glPushMatrix();
             glTranslatef(4 + i * 20, 1, 20);
             glCallList(matHotBarBlock);
-            t.init();
+            t.init(GL_QUADS);
             player.hotBar[i].render(t, planet, 0, -2, 0, 0);
-            t.draw(GL_QUADS);
+            t.draw();
             glPopMatrix();
         }
         glPopMatrix();
@@ -214,7 +214,7 @@ public class Real4D extends Game {
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
         glColor4f(1, 1, 1, 0.5f);
-        t.init()
+        t.init(GL_QUADS)
             .vertex(1, -4, 0)
             .vertex(0, -4, 0)
             .vertex(0, 5, 0)
@@ -227,7 +227,7 @@ public class Real4D extends Game {
             .vertex(-4, 0, 0)
             .vertex(-4, 1, 0)
             .vertex(0, 1, 0)
-            .draw(GL_QUADS);
+            .draw();
         glDisable(GL_BLEND);
         glEnable(GL_ALPHA_TEST);
         glPopMatrix();
@@ -288,7 +288,7 @@ public class Real4D extends Game {
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
             0.05f,
-            4000.0f);
+            1000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         moveCameraToPlayer(delta);
@@ -311,7 +311,7 @@ public class Real4D extends Game {
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
             0.05f,
-            4000.0f);
+            1000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         moveCameraToPlayer(delta);

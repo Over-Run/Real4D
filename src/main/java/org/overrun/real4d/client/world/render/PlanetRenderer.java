@@ -132,9 +132,9 @@ public class PlanetRenderer implements PlanetListener {
                                 z + vec.getAxisZ(),
                                 0)
                             ) {
-                                t.init();
+                                t.init(GL_QUADS);
                                 block.pickOutline(t, x, y, z, vec);
-                                t.draw(GL_QUADS);
+                                t.draw();
                             }
                         }
 
@@ -157,9 +157,9 @@ public class PlanetRenderer implements PlanetListener {
             1,
             1,
             (float) (Math.sin(System.currentTimeMillis() / 100.0) * 0.2 + 0.4) * 0.5f);
-        t.init();
+        t.init(GL_QUADS);
         Blocks.STONE.renderFace(t, h.x, h.y, h.z, h.face);
-        t.draw(GL_QUADS);
+        t.draw();
         glDisable(GL_BLEND);
     }
 

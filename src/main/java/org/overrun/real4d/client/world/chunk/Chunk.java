@@ -57,7 +57,7 @@ public class Chunk {
         ++updates;
         long before = System.nanoTime();
         glNewList(lists + layer, GL_COMPILE);
-        t.init();
+        t.init(GL_QUADS);
         int blocks = 0;
         for (int x = x0; x < x1; x++) {
             for (int y = y0; y < y1; y++) {
@@ -70,7 +70,7 @@ public class Chunk {
                 }
             }
         }
-        t.draw(GL_QUADS);
+        t.draw();
         glEndList();
         long after = System.nanoTime();
         if (blocks > 0) {

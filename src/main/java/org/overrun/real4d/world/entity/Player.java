@@ -59,8 +59,9 @@ public class Player extends Entity {
             bbHeight = 1.8f;
             eyeHeight = 1.62f;
         }
-        isRunning = input.keyPressed(GLFW_KEY_LEFT_CONTROL)
-            || input.keyPressed(GLFW_KEY_RIGHT_CONTROL);
+        isRunning = (input.keyPressed(GLFW_KEY_LEFT_CONTROL)
+            || input.keyPressed(GLFW_KEY_RIGHT_CONTROL))
+            && (xa * xa + za * za >= 0.01f);
         float speed;
         if (onGround) {
             if (isSneaking) {

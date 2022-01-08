@@ -12,9 +12,6 @@ public class GLMatrix {
     private static final float[] projf = new float[16];
     private static final float[] modlf = new float[16];
     private static final float[] texrf = new float[16];
-    private static final Matrix4f proj = new Matrix4f();
-    private static final Matrix4f modl = new Matrix4f();
-    private static final Matrix4f texr = new Matrix4f();
 
     public static float[] getProjectionf() {
         glGetFloatv(GL_PROJECTION_MATRIX, projf);
@@ -32,14 +29,14 @@ public class GLMatrix {
     }
 
     public static Matrix4f getProjection() {
-        return proj.set(getProjectionf());
+        return new Matrix4f().set(getProjectionf());
     }
 
     public static Matrix4f getModelview() {
-        return modl.set(getModelviewf());
+        return new Matrix4f().set(getModelviewf());
     }
 
     public static Matrix4f getTexture() {
-        return texr.set(getTexturef());
+        return new Matrix4f().set(getTexturef());
     }
 }
