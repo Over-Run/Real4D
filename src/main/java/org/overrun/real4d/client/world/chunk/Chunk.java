@@ -1,11 +1,14 @@
 package org.overrun.real4d.client.world.chunk;
 
+import org.joml.Vector3i;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.real4d.world.entity.Player;
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.Planet;
 
+import static java.lang.Math.floor;
 import static org.lwjgl.opengl.GL11.*;
+import static org.overrun.real4d.util.VectorPool.vec3AllocInt;
 
 /**
  * @author squid233
@@ -62,9 +65,10 @@ public class Chunk {
         for (int x = x0; x < x1; x++) {
             for (int y = y0; y < y1; y++) {
                 for (int z = z0; z < z1; z++) {
-                    var block = planet.getBlock(x, y, z);
+                    var pos = vec3AllocInt("real4d:client.world.chunk.Chunk.rebuild(I)V").set(x, y, z);
+                    var block = planet.getBlock(pos);
                     if (!block.isAir()) {
-                        block.render(t, planet, layer, x, y, z);
+                        block.render(t, planet, layer, pos);
                         ++blocks;
                     }
                 }
@@ -99,10 +103,11 @@ public class Chunk {
         return dirty;
     }
 
+    public Vector3i getBlockPos() {
+        return new Vector3i((int) floor(x), (int) floor(y), (int) floor(z));
+    }
+
     public float distanceToSqr(Player player) {
-        float xd = player.x - x;
-        float yd = player.y - y;
-        float zd = player.z - z;
-        return xd * xd + yd * yd + zd * zd;
+        return player.pos.distanceSquared(x, y, z);
     }
 }

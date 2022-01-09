@@ -8,8 +8,6 @@ import org.overrun.glutils.gl.Vbo;
 import org.overrun.glutils.gl.VertexAttrib;
 import org.overrun.glutils.tex.Images;
 import org.overrun.glutils.tex.Textures;
-import org.overrun.real4d.asset.AssetManager;
-import org.overrun.real4d.asset.AssetType;
 import org.overrun.real4d.client.gl.GLMatrix;
 import org.overrun.real4d.util.Identifier;
 
@@ -20,6 +18,8 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.memAlloc;
 import static org.lwjgl.system.MemoryUtil.memFree;
+import static org.overrun.glutils.FilesReader.lines;
+import static org.overrun.real4d.asset.AssetManager.makePath;
 
 /**
  * @author squid233
@@ -71,12 +71,15 @@ public class Skybox {
         1.0f, -1.0f, 1.0f
     };
     public static final Identifier
-        RIGHT = new Identifier("skybox/right.jpg"),
-        LEFT = new Identifier("skybox/left.jpg"),
-        TOP = new Identifier("skybox/top.jpg"),
-        BOTTOM = new Identifier("skybox/bottom.jpg"),
-        FRONT = new Identifier("skybox/front.jpg"),
-        BACK = new Identifier("skybox/back.jpg");
+        RIGHT = new Identifier("textures/skybox/right.jpg"),
+        LEFT = new Identifier("textures/skybox/left.jpg"),
+        TOP = new Identifier("textures/skybox/top.jpg"),
+        BOTTOM = new Identifier("textures/skybox/bottom.jpg"),
+        FRONT = new Identifier("textures/skybox/front.jpg"),
+        BACK = new Identifier("textures/skybox/back.jpg");
+    public static final Identifier
+        VERTEX_SHADER = new Identifier("shaders/skybox.vert"),
+        FRAGMENT_SHADER = new Identifier("shaders/skybox.frag");
     private static final Matrix4f matrix = new Matrix4f();
     public final int id = Textures.gen();
     public final Vao vao = new Vao();
@@ -85,24 +88,9 @@ public class Skybox {
     public final GLProgram program = new GLProgram();
 
     public Skybox() {
-        program.createVsh("""
-            #version 330
-            layout (location = 0) in vec3 aPos;
-            out vec3 TexCoords;
-            uniform mat4 proj, view;
-            void main() {
-                TexCoords = aPos;
-                vec4 pos = proj * view * vec4(aPos, 1.0);
-                gl_Position = pos.xyww;
-            }""");
-        program.createFsh("""
-            #version 330
-            out vec4 FragColor;
-            in vec3 TexCoords;
-            uniform samplerCube skybox;
-            void main() {
-                FragColor = texture(skybox, TexCoords);
-            }""");
+        var cl = Skybox.class.getClassLoader();
+        program.createVsh(lines(cl, makePath(VERTEX_SHADER)));
+        program.createFsh(lines(cl, makePath(FRAGMENT_SHADER)));
         program.link();
         vao.bind();
         vbo.bind();
@@ -133,13 +121,9 @@ public class Skybox {
             var pc = stack.mallocInt(1);
             int i = 0;
             for (var faceID : faces) {
-                var face = AssetManager.makePath(
-                    AssetType.TEXTURES,
-                    faceID
-                );
+                var face = makePath(faceID);
                 try (var is = requireNonNull(
-                    Skybox.class.getClassLoader()
-                        .getResourceAsStream(face)
+                    cl.getResourceAsStream(face)
                 ); var bis = new BufferedInputStream(is)) {
                     var arr = bis.readAllBytes();
                     var bb = memAlloc(arr.length).put(arr).flip();

@@ -1,9 +1,17 @@
 package org.overrun.real4d.world.block;
 
+import org.joml.Vector3i;
+import org.overrun.glutils.light.Direction;
 import org.overrun.real4d.util.Identifier;
 import org.overrun.real4d.world.planet.Planet;
 
 import java.util.Random;
+
+import static org.overrun.glutils.light.Direction.DOWN;
+import static org.overrun.glutils.light.Direction.UP;
+import static org.overrun.real4d.util.VectorPool.vec3AllocInt;
+import static org.overrun.real4d.world.block.Blocks.DIRT;
+import static org.overrun.real4d.world.block.Blocks.GRASS_BLOCK;
 
 /**
  * @author squid233
@@ -16,29 +24,34 @@ public class GrassBlock extends Block {
 
     @Override
     public void randomTick(Planet planet,
-                           int x,
-                           int y,
-                           int z,
+                           Vector3i pos,
                            Random random) {
+        if (!planet.isLit(pos)) {
+            planet.setBlock(pos, DIRT);
+        } else {
+            var vec = vec3AllocInt("real4d:world.block.GrassBlock.randomTick(Planet;Vector3i;Random)V;0");
+            for (int i = 0; i < 4; i++) {
+                int xb = random.nextInt(3) - 1;
+                int yb = random.nextInt(5) - 3;
+                int zb = random.nextInt(3) - 1;
+                vec.set(xb, yb, zb).add(pos);
+                if (planet.getBlock(vec) == DIRT
+                    && planet.isLit(vec)) {
+                    planet.setBlock(vec, GRASS_BLOCK);
+                }
+            }
+        }
     }
 
     @Override
-    public Identifier getTexTop() {
-        return TEXTURE_TOP;
-    }
-
-    @Override
-    public Identifier getTexSid() {
-        return TEXTURE_SID;
-    }
-
-    @Override
-    public Identifier getTexSidOverlay() {
-        return TEXTURE_SID_OVERLAY;
-    }
-
-    @Override
-    public Identifier getTexBtm() {
-        return Blocks.DIRT.getId();
+    public Identifier getTexture(Direction dir,
+                                 boolean overlay) {
+        if (overlay && dir != UP && dir != DOWN)
+            return TEXTURE_SID_OVERLAY;
+        return switch (dir) {
+            case UP -> TEXTURE_TOP;
+            case DOWN -> DIRT.getId();
+            default -> TEXTURE_SID;
+        };
     }
 }

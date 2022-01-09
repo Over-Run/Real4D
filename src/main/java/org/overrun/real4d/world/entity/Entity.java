@@ -1,5 +1,9 @@
 package org.overrun.real4d.world.entity;
 
+import org.joml.RoundingMode;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.Planet;
 
@@ -11,10 +15,10 @@ import static java.lang.Math.*;
  */
 public class Entity {
     protected Planet planet;
-    public float x, y, z;
-    public float prevX, prevY, prevZ;
-    public float xRot, yRot;
-    public float xd, yd, zd;
+    public final Vector3f pos = new Vector3f();
+    public final Vector3f prevPos = new Vector3f();
+    public final Vector2f rot = new Vector2f();
+    public final Vector3f posDelta = new Vector3f();
     public AABBox box;
     public boolean onGround;
     public boolean removed;
@@ -27,7 +31,7 @@ public class Entity {
         resetPos();
     }
 
-    protected void resetPos() {
+    public void resetPos() {
         float x = (float) random() * planet.width;
         float y = planet.height + 10;
         float z = (float) random() * planet.depth;
@@ -47,34 +51,33 @@ public class Entity {
     protected void setPos(final float x,
                           final float y,
                           final float z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        pos.set(x, y, z);
         float w = bbWidth / 2.0f;
         float h = bbHeight / 2.0f;
         box = new AABBox(x - w, y - h, z - w, x + w, y + h, z + w);
     }
 
     public void tick() {
-        prevX = x;
-        prevY = y;
-        prevZ = z;
+        prevPos.set(pos);
     }
 
     public void turn(final float xo,
                      final float yo) {
-        yRot += xo * 0.15;
-        xRot += yo * 0.15;
-        if (xRot < -90) {
-            xRot = -90;
-        } else if (xRot > 90) {
-            xRot = 90;
+        rot.add(yo * 0.15f, xo * 0.15f);
+        if (rot.x < -90) {
+            rot.x = -90;
+        } else if (rot.x > 90) {
+            rot.x = 90;
         }
-        if (yRot > 180) {
-            yRot = -180;
-        } else if (yRot < -180) {
-            yRot = 180;
+        if (rot.y > 180) {
+            rot.y = -180;
+        } else if (rot.y < -180) {
+            rot.y = 180;
         }
+    }
+
+    public void move(final Vector3f vec) {
+        move(vec.x, vec.y, vec.z);
     }
 
     public void move(float xa,
@@ -101,18 +104,18 @@ public class Entity {
         onGround = yaOrg != ya && yaOrg < 0;
 
         if (xaOrg != xa) {
-            xd = 0;
+            posDelta.x = 0;
         }
         if (yaOrg != ya) {
-            yd = 0;
+            posDelta.y = 0;
         }
         if (zaOrg != za) {
-            zd = 0;
+            posDelta.z = 0;
         }
 
-        x = (box.min.x + box.max.x) / 2.0f;
-        y = box.min.y;
-        z = (box.min.z + box.max.z) / 2.0f;
+        pos.set((box.min.x + box.max.x) / 2.0f,
+            box.min.y + eyeHeight,
+            (box.min.z + box.max.z) / 2.0f);
     }
 
     public void moveRelative(float xa,
@@ -123,15 +126,21 @@ public class Entity {
             dist = speed / (float) sqrt(dist);
             xa *= dist;
             za *= dist;
-            var rad = toRadians(yRot);
+            var rad = toRadians(rot.y);
             var sin = sin(rad);
             var cos = cos(rad);
-            xd += xa * cos - za * sin;
-            zd += za * cos + xa * sin;
+            posDelta.add((float) (xa * cos - za * sin),
+                0,
+                (float) (za * cos + xa * sin));
         }
     }
 
+    public Vector3i getBlockPos() {
+        return new Vector3i(pos, RoundingMode.FLOOR);
+    }
+
     public boolean isLit() {
-        return planet.isLit((int) x, (int) y, (int) z);
+        var p = getBlockPos();
+        return planet.isLit(p);
     }
 }

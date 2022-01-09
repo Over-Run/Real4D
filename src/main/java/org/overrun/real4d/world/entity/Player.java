@@ -34,6 +34,9 @@ public class Player extends Entity {
     public void tick() {
         super.tick();
         float xa = 0, za = 0;
+        if (input.keyPressed(GLFW_KEY_R)) {
+            resetPos();
+        }
         if (input.keyPressed(GLFW_KEY_W)) {
             --za;
         }
@@ -47,7 +50,7 @@ public class Player extends Entity {
             ++xa;
         }
         if (input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
-            yd = 0.5f;
+            posDelta.y = 0.5f;
         }
         if (input.keyPressed(GLFW_KEY_LEFT_SHIFT)
             || input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
@@ -79,14 +82,11 @@ public class Player extends Entity {
             }
         }
         moveRelative(xa, za, speed);
-        yd -= 0.08;
-        move(xd, yd, zd);
-        xd *= 0.91;
-        yd *= 0.98;
-        zd *= 0.91;
+        posDelta.y -= 0.08;
+        move(posDelta);
+        posDelta.mul(0.91f, 0.98f, 0.91f);
         if (onGround) {
-            xd *= 0.7;
-            zd *= 0.7;
+            posDelta.mul(0.7f, 1, 0.7f);
         }
     }
 

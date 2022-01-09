@@ -1,5 +1,6 @@
 package org.overrun.real4d.client.world.render;
 
+import org.joml.Vector3ic;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.glutils.light.Direction;
 import org.overrun.real4d.client.Frustum;
@@ -16,6 +17,7 @@ import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
+import static org.overrun.real4d.util.VectorPool.vec3AllocInt;
 
 /**
  * @author squid233
@@ -26,9 +28,9 @@ public class PlanetRenderer implements PlanetListener {
     public static final int CHUNK_SIZE = 16;
     private final Planet planet;
     private final Chunk[] chunks;
-    private final int xChunks;
-    private final int yChunks;
-    private final int zChunks;
+    public final int xChunks;
+    public final int yChunks;
+    public final int zChunks;
 
     public PlanetRenderer(Planet planet) {
         this.planet = planet;
@@ -55,7 +57,7 @@ public class PlanetRenderer implements PlanetListener {
                     if (z1 > planet.depth) {
                         z1 = planet.depth;
                     }
-                    chunks[(x + y * xChunks) * zChunks + z] = new Chunk(planet, x0, y0, z0, x1, y1, z1);
+                    chunks[getIndex(x, y, z)] = new Chunk(planet, x0, y0, z0, x1, y1, z1);
                 }
             }
         }
@@ -117,23 +119,24 @@ public class PlanetRenderer implements PlanetListener {
                 glLoadName(y);
                 glPushName(0);
                 for (int z = z0; z < z1; z++) {
-                    var block = planet.getBlock(x, y, z);
+                    var pos = vec3AllocInt("real4d:client.world.render.PlanetRenderer.pick(Player;Frustum)V")
+                        .set(x, y, z);
+                    var block = planet.getBlock(pos);
                     if (!block.isAir()
-                        && frustum.isVisible(block.getOutline().moveNew(x, y, z))) {
+                        && frustum.isVisible(block.getOutline()
+                        .moveNew(x, y, z))) {
                         glLoadName(z);
                         glPushName(0);
 
                         for (int i = 0; i < 6; i++) {
                             glLoadName(i);
-                            var vec = Direction.getById(i);
-                            if (block.shouldRenderFace(planet,
-                                x + vec.getAxisX(),
-                                y + vec.getAxisY(),
-                                z + vec.getAxisZ(),
-                                0)
+                            var dir = Direction.getById(i);
+                            var vec = dir.toVector().add(pos);
+                            if (block.shouldRenderFace(planet, vec, 0)
+                                || block.shouldRenderFace(planet, vec, 1)
                             ) {
                                 t.init(GL_QUADS);
-                                block.pickOutline(t, x, y, z, vec);
+                                block.pickOutline(t, pos, dir);
                                 t.draw();
                             }
                         }
@@ -158,9 +161,24 @@ public class PlanetRenderer implements PlanetListener {
             1,
             (float) (Math.sin(System.currentTimeMillis() / 100.0) * 0.2 + 0.4) * 0.5f);
         t.init(GL_QUADS);
-        Blocks.STONE.renderFace(t, h.x, h.y, h.z, h.face);
+        Blocks.STONE.renderFace(t, h.pos, h.face);
         t.draw();
         glDisable(GL_BLEND);
+    }
+
+    public Chunk getChunk(int x, int y, int z) {
+        return inIndex(x, y, z)
+            ? chunks[getIndex(x, y, z)]
+            : null;
+    }
+
+    public int getIndex(int x, int y, int z) {
+        return (x + y * xChunks) * zChunks + z;
+    }
+
+    public boolean inIndex(int x, int y, int z) {
+        return x >= 0 && y >= 0 && z >= 0
+            && x < xChunks && y < yChunks && z < zChunks;
     }
 
     public void markDirty(int x0, int y0, int z0, int x1, int y1, int z1) {
@@ -193,14 +211,17 @@ public class PlanetRenderer implements PlanetListener {
         for (int x = x0; x <= x1; ++x) {
             for (int y = y0; y <= y1; ++y) {
                 for (int z = z0; z <= z1; ++z) {
-                    chunks[(x + y * xChunks) * zChunks + z].markDirty();
+                    chunks[getIndex(x, y, z)].markDirty();
                 }
             }
         }
     }
 
     @Override
-    public void blockChanged(int x, int y, int z) {
+    public void blockChanged(Vector3ic pos) {
+        int x = pos.x();
+        int y = pos.y();
+        int z = pos.z();
         markDirty(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1);
     }
 

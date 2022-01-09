@@ -1,5 +1,6 @@
 package org.overrun.real4d.world.block;
 
+import org.joml.Vector3ic;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.glutils.light.Direction;
 import org.overrun.real4d.util.Identifier;
@@ -15,39 +16,24 @@ public class AirBlock extends Block {
     public void render(Tesselator t,
                        Planet planet,
                        int layer,
-                       int x,
-                       int y,
-                       int z) {
+                       Vector3ic pos) {
     }
 
     @Override
     public void renderFace(Tesselator t,
-                           int x,
-                           int y,
-                           int z,
+                           Vector3ic pos,
                            Direction face) {
     }
 
     @Override
     public void pickOutline(Tesselator t,
-                            int x,
-                            int y,
-                            int z,
+                            Vector3ic pos,
                             Direction face) {
     }
 
     @Override
-    public Identifier getTexTop() {
-        return null;
-    }
-
-    @Override
-    public Identifier getTexSid() {
-        return null;
-    }
-
-    @Override
-    public Identifier getTexBtm() {
+    public Identifier getTexture(Direction dir,
+                                 boolean overlay) {
         return null;
     }
 

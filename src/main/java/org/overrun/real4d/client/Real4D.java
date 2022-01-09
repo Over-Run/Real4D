@@ -1,20 +1,24 @@
 package org.overrun.real4d.client;
 
+import org.joml.Vector3i;
 import org.overrun.glutils.GLUtils;
 import org.overrun.glutils.game.Game;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.glutils.light.Direction;
+import org.overrun.real4d.client.gui.render.TextRenderer;
 import org.overrun.real4d.client.gui.screen.PausingScreen;
 import org.overrun.real4d.client.world.Skybox;
 import org.overrun.real4d.client.world.chunk.Chunk;
 import org.overrun.real4d.client.world.render.PlanetRenderer;
 import org.overrun.real4d.world.HitResult;
 import org.overrun.real4d.world.block.Blocks;
+import org.overrun.real4d.world.entity.Human;
 import org.overrun.real4d.world.entity.Player;
 import org.overrun.real4d.world.planet.Planet;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -27,6 +31,8 @@ import static org.overrun.real4d.client.SpriteAtlases.WIDGETS_ATLAS;
 import static org.overrun.real4d.client.gui.DrawableHelper.draw;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
+import static org.overrun.real4d.client.gui.render.TextRenderer.drawText;
+import static org.overrun.real4d.client.world.render.PlanetRenderer.CHUNK_SIZE;
 
 /**
  * @author squid233
@@ -40,7 +46,15 @@ public class Real4D extends Game {
     private final FloatBuffer lightingBuffer = memAllocFloat(16);
     private final float[] fogColor0 = {0xfe / 255f, 0xfb / 255f, 0xfa / 255f, 1};
     private final float[] fogColor1 = {0x0e / 255f, 0x0b / 255f, 0x0a / 255f, 1};
-    public boolean enableFog = false;
+    private final String[] debugText = {
+        "Facing: %s (Towards %s) (%f / %f)",
+        "Client Light: %d"
+    };
+    private final Camera camera = new Camera();
+    private final Vector3i hotBarVec = new Vector3i(-2, 0, 0);
+    private final ArrayList<Human> humans = new ArrayList<>();
+    private boolean debugging = false;
+    public boolean enableFog = true;
     private Skybox skybox;
     private Planet planet;
     private PlanetRenderer planetRenderer;
@@ -86,6 +100,9 @@ public class Real4D extends Game {
         glTranslatef(2.5f, -2, -0.5f);
         glEndList();
 
+        TextRenderer.loadFont();
+        TextRenderer.buildLists();
+
         skybox = new Skybox();
 
         Blocks.register();
@@ -94,6 +111,11 @@ public class Real4D extends Game {
         planetRenderer = new PlanetRenderer(planet);
         player = new Player(planet);
         window.setGrabbed(true);
+        for (int i = 0; i < 10; i++) {
+            var human = new Human(planet, 128, 0, 128);
+            human.resetPos();
+            humans.add(human);
+        }
     }
 
     private void pick(float delta) {
@@ -139,26 +161,45 @@ public class Real4D extends Game {
         pick(delta);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setupCamera(delta);
+
         glEnable(GL_CULL_FACE);
+        var frustum = Frustum.getFrustum();
         planetRenderer.updateDirtyChunks(player);
+
         setupFog(0);
         if (enableFog) glEnable(GL_FOG);
         planetRenderer.render(0);
+        for (var human : humans) {
+            if (human.isLit() && frustum.isVisible(human.box)) {
+                human.render(delta);
+            }
+        }
+
         setupFog(1);
         planetRenderer.render(1);
+        for (var human : humans) {
+            if (!human.isLit() && frustum.isVisible(human.box)) {
+                human.render(delta);
+            }
+        }
+
         glDisable(GL_LIGHTING);
         glDisable(GL_TEXTURE_2D);
         if (enableFog) glDisable(GL_FOG);
+
         if (hitResult != null) {
             glDisable(GL_ALPHA_TEST);
             planetRenderer.renderHit(hitResult);
             glEnable(GL_ALPHA_TEST);
         }
+
         skybox.render();
+
         final int screenWidth = bufFrame.width() * 240 / bufFrame.height();
         // height * 240 / height
         final int screenHeight = 240;
         drawGui(screenWidth, screenHeight, delta);
+
         super.render();
     }
 
@@ -179,6 +220,55 @@ public class Real4D extends Game {
         int hc = height / 2;
 
         glColor4f(1, 1, 1, 1);
+
+        if (debugging) {
+            glPushMatrix();
+            glScalef(0.5f, 0.5f, 0);
+            var px = player.pos.x;
+            var py = player.pos.y;
+            var pz = player.pos.z;
+            var pos = player.getBlockPos();
+            var pxi = pos.x();
+            var pyi = pos.y();
+            var pzi = pos.z();
+            var cx = pxi / CHUNK_SIZE;
+            var cy = pyi / CHUNK_SIZE;
+            var cz = pzi / CHUNK_SIZE;
+            var chunk = planetRenderer.getChunk(cx, cy, cz);
+            String chunkPos;
+            if (chunk != null && planet.inIndex(pos))
+                chunkPos = "Chunk: "
+                    + (pxi - chunk.x0) + " "
+                    + (pyi - chunk.y0) + " "
+                    + (pzi - chunk.z0) + " in "
+                    + cx + " " + cy + " " + cz;
+            else
+                chunkPos = "Chunk: Outside of the Earth";
+            glDisable(GL_ALPHA_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            drawText("Real4D " + VERSION + "\n"
+                    + graphics.getFps() + " fps ("
+                    + Chunk.updates + " chunk updates)" + "\n \n"
+                    + "XYZ: " + px + " / " + py + " / " + pz + "\n"
+                    + "Block: " + pxi + " " + pyi + " " + pzi + "\n"
+                    + chunkPos, 0, 0, 0,
+                glyph -> {
+                    glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
+                    glBegin(GL_QUADS);
+                    glVertex2f(glyph.x0, glyph.y0);
+                    glVertex2f(glyph.x0, glyph.y1);
+                    glVertex2f(glyph.x1, glyph.y1);
+                    glVertex2f(glyph.x1, glyph.y0);
+                    glEnd();
+                    glColor3f(1, 1, 1);
+                }
+            );
+            glDisable(GL_BLEND);
+            glEnable(GL_ALPHA_TEST);
+            glPopMatrix();
+        }
+
         // Hot bar
         glEnable(GL_TEXTURE_2D);
         WIDGETS_ATLAS.bind();
@@ -200,7 +290,7 @@ public class Real4D extends Game {
             glTranslatef(4 + i * 20, 1, 20);
             glCallList(matHotBarBlock);
             t.init(GL_QUADS);
-            player.hotBar[i].render(t, planet, 0, -2, 0, 0);
+            player.hotBar[i].render(t, planet, 0, hotBarVec);
             t.draw();
             glPopMatrix();
         }
@@ -240,9 +330,7 @@ public class Real4D extends Game {
         if (hitResult != null) {
             if (lastDestroyTick == 0
                 && input.mousePressed(GLFW_MOUSE_BUTTON_LEFT)) {
-                boolean changed = planet.setBlock(hitResult.x,
-                    hitResult.y,
-                    hitResult.z,
+                boolean changed = planet.setBlock(hitResult.pos,
                     Blocks.AIR);
                 if (changed) {
                     lastDestroyTick = 3;
@@ -250,28 +338,37 @@ public class Real4D extends Game {
             }
             if (lastPlaceTick == 0
                 && input.mousePressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-                var face = hitResult.face;
-                int x = hitResult.x += face.getAxisX();
-                int y = hitResult.y += face.getAxisY();
-                int z = hitResult.z += face.getAxisZ();
-                boolean changed = planet.getBlock(x, y, z).isAir()
-                    && planet.setBlock(x, y, z, player.hotBar[player.select]);
+                var pos = hitResult.face.toVector().add(hitResult.pos);
+                boolean changed = planet.getBlock(pos).isAir()
+                    && planet.setBlock(pos, player.hotBar[player.select]);
                 if (changed) {
                     lastPlaceTick = 3;
                 }
             }
         }
+        if (input.keyPressed(GLFW_KEY_G)) {
+            var p = player.pos;
+            humans.add(new Human(planet, p.x, p.y, p.z));
+        }
         planet.tick();
+        for (int i = 0; i < humans.size(); i++) {
+            var human = humans.get(i);
+            human.tick();
+            if (human.removed) {
+                humans.remove(i--);
+            }
+        }
         player.tick();
     }
 
     private void moveCameraToPlayer(float delta) {
         glTranslatef(0, 0, -0.3f);
-        glRotatef(player.xRot, 1, 0, 0);
-        glRotatef(player.yRot, 0, 1, 0);
-        float x = player.prevX + (player.x - player.prevX) * delta;
-        float y = player.prevY + (player.y - player.prevY) * delta + player.eyeHeight;
-        float z = player.prevZ + (player.z - player.prevZ) * delta;
+        glRotatef(player.rot.x, 1, 0, 0);
+        glRotatef(player.rot.y, 0, 1, 0);
+        var pos = camera.pos.set(player.prevPos).lerp(player.pos, delta);
+        float x = pos.x;
+        float y = pos.y;
+        float z = pos.z;
         glTranslatef(-x, -y, -z);
     }
 
@@ -283,7 +380,7 @@ public class Real4D extends Game {
             fovy += 5f;
         }
         if (input.keyPressed(GLFW_KEY_C)) {
-            fovy -= 25f;
+            fovy = 25f;
         }
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
@@ -306,7 +403,7 @@ public class Real4D extends Game {
             fovy += 5f;
         }
         if (input.keyPressed(GLFW_KEY_C)) {
-            fovy -= 25f;
+            fovy = 25f;
         }
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
@@ -368,17 +465,18 @@ public class Real4D extends Game {
 
     @Override
     public void keyPressed(int key, int scancode, int mods) {
-        if (key == GLFW_KEY_ESCAPE) {
-            isPaused = !isPaused;
-            window.setGrabbed(!isPaused);
-            timer.setTimeScale(isPaused ? 0 : 1);
-            if (isPaused) {
-                openScreen(new PausingScreen(null));
-            } else {
-                openScreen(null);
-            }
-        }
         switch (key) {
+            case GLFW_KEY_ESCAPE -> {
+                isPaused = !isPaused;
+                window.setGrabbed(!isPaused);
+                timer.setTimeScale(isPaused ? 0 : 1);
+                if (isPaused) {
+                    openScreen(new PausingScreen(null));
+                } else {
+                    openScreen(null);
+                }
+            }
+            case GLFW_KEY_F3 -> debugging = !debugging;
             case GLFW_KEY_0 -> player.select = 9;
             case GLFW_KEY_1 -> player.select = 0;
             case GLFW_KEY_2 -> player.select = 1;
@@ -409,6 +507,7 @@ public class Real4D extends Game {
         memFree(viewportBuffer);
         memFree(selectBuffer);
         memFree(lightingBuffer);
+        Human.free();
         skybox.free();
         SpriteAtlases.free();
     }

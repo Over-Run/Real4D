@@ -1,7 +1,6 @@
 package org.overrun.real4d.client.model;
 
 import org.overrun.real4d.asset.AssetManager;
-import org.overrun.real4d.asset.AssetType;
 import org.overrun.real4d.util.Identifier;
 
 /**
@@ -10,7 +9,8 @@ import org.overrun.real4d.util.Identifier;
  */
 public class BlockModels {
     public static String toTexFilePath(Identifier id) {
-        return AssetManager.makePath(AssetType.TEXTURES,
-            new Identifier(id.namespace, "block/" + id.path + ".png"));
+        return AssetManager.makePath(
+            new Identifier(id.namespace, "textures/block/" + id.path + ".png")
+        );
     }
 }

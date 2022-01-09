@@ -1,5 +1,6 @@
 package org.overrun.real4d.world.planet;
 
+import org.joml.Vector3ic;
 import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.phys.AABBox;
 
@@ -9,6 +10,7 @@ import java.util.Random;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static org.overrun.real4d.util.VectorPool.vec3AllocInt;
 import static org.overrun.real4d.world.block.Blocks.*;
 
 /**
@@ -32,11 +34,14 @@ public class Planet {
         this.depth = depth;
         blocks = new Block[width * height * depth];
         lightDepths = new int[width * depth];
+        var vec = vec3AllocInt("real4d:world.planet.Planet.<init>(I;I;I)V");
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
-                blocks[getIndex(x, 0, z)] = BEDROCK;
+                vec.set(x, 0, z);
+                blocks[getIndex(vec)] = BEDROCK;
                 for (int y = 1; y < height; y++) {
-                    blocks[getIndex(x, y, z)] = AIR;
+                    vec.y = y;
+                    blocks[getIndex(vec)] = AIR;
                 }
             }
         }
@@ -45,16 +50,19 @@ public class Planet {
     }
 
     private void generateMap() {
+        var vec = vec3AllocInt("real4d:world.planet.Planet.generateMap()V");
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
                 int by = random.nextInt(1, 5);
                 boolean genBedrock = random.nextBoolean();
                 if (genBedrock) {
-                    blocks[getIndex(x, by, z)] = BEDROCK;
+                    vec.set(x, by, z);
+                    blocks[getIndex(vec)] = BEDROCK;
                 }
                 for (int y = 1; y < 5; y++) {
                     if (!genBedrock || y != by) {
-                        blocks[getIndex(x, y, z)] = STONE;
+                        vec.set(x, y, z);
+                        blocks[getIndex(vec)] = STONE;
                     }
                 }
             }
@@ -62,11 +70,12 @@ public class Planet {
     }
 
     public void calcLightDepths(int x0, int z0, int x1, int z1) {
+        var vec = vec3AllocInt("real4d:world.planet.Planet.calcLightDepths(I;I;I;I)V");
         for (int x = x0, mx = x0 + x1; x < mx; x++) {
             for (int z = z0, mz = z0 + z1; z < mz; z++) {
                 int oldDepth = lightDepths[x + z * width];
                 int y = height - 1;
-                while (y > 0 && !isLightBlocker(x, y, z)) {
+                while (y > 0 && !isLightBlocker(vec.set(x, y, z))) {
                     --y;
                 }
                 lightDepths[x + z * width] = y;
@@ -90,8 +99,8 @@ public class Planet {
         listeners.remove(listener);
     }
 
-    public boolean isLightBlocker(int x, int y, int z) {
-        return getBlock(x, y, z).isOpaque();
+    public boolean isLightBlocker(Vector3ic pos) {
+        return getBlock(pos).isOpaque();
     }
 
     public List<AABBox> getCubes(AABBox origin) {
@@ -121,11 +130,12 @@ public class Planet {
         if (z1 > depth) {
             z1 = depth;
         }
-
+        var pos = vec3AllocInt("real4d:world.planet.Planet.getCubes(AABBox)List");
         for (int x = x0; x < x1; x++) {
             for (int y = y0; y < y1; y++) {
                 for (int z = z0; z < z1; z++) {
-                    var block = getBlock(x, y, z);
+                    pos.set(x, y, z);
+                    var block = getBlock(pos);
                     var aabb = block.getCollision();
                     if (aabb != AABBox.empty()) {
                         boxes.add(aabb.moveNew(x, y, z));
@@ -137,44 +147,53 @@ public class Planet {
         return boxes;
     }
 
-    public boolean setBlock(int x, int y, int z, Block block) {
-        if (!inIndex(x, y, z)) {
+    public boolean setBlock(Vector3ic pos,
+                            Block block) {
+        if (!inIndex(pos)) {
             return false;
         }
-        int i = getIndex(x, y, z);
+        int i = getIndex(pos);
         if (blocks[i] == block) {
             return false;
         }
         blocks[i] = block;
-        calcLightDepths(x, z, 1, 1);
+        calcLightDepths(pos.x(), pos.z(), 1, 1);
         for (var listener : listeners) {
-            listener.blockChanged(x, y, z);
+            listener.blockChanged(pos);
         }
         return true;
     }
 
-    public Block getBlock(int x, int y, int z) {
-        return inIndex(x, y, z)
-            ? blocks[getIndex(x, y, z)]
+    public Block getBlock(Vector3ic pos) {
+        return inIndex(pos)
+            ? blocks[getIndex(pos)]
             : AIR;
     }
 
-    public int getIndex(int x, int y, int z) {
+    public int getIndex(Vector3ic pos) {
+        int x = pos.x();
+        int y = pos.y();
+        int z = pos.z();
         return (y * depth + z) * width + x;
     }
 
-    public boolean inIndex(int x, int y, int z) {
+    public boolean inIndex(Vector3ic pos) {
+        int x = pos.x();
+        int y = pos.y();
+        int z = pos.z();
         return x >= 0 && y >= 0 && z >= 0
             && x < width && y < height && z < depth;
     }
 
-    public boolean isLit(int x, int y, int z) {
-        boolean b = y >= lightDepths[x + z * width];
-        return !inIndex(x, y, z) || b;
+    public boolean isLit(Vector3ic pos) {
+        int x = pos.x();
+        int y = pos.y();
+        int z = pos.z();
+        return !inIndex(pos) || y >= lightDepths[x + z * width];
     }
 
-    public boolean isSolidBlock(int x, int y, int z) {
-        return getBlock(x, y, z).isSolid();
+    public boolean isSolidBlock(Vector3ic pos) {
+        return getBlock(pos).isSolid();
     }
 
     public void tick() {
@@ -185,8 +204,12 @@ public class Planet {
             int x = random.nextInt(width);
             int y = random.nextInt(height);
             int z = random.nextInt(depth);
-            var block = getBlock(x, y, z);
-            block.randomTick(this, x, y, z, random);
+            var pos = vec3AllocInt("real4d:world.planet.Planet.tick()V")
+                .set(x, y, z);
+            var block = getBlock(pos);
+            if (!block.isAir()) {
+                block.randomTick(this, pos, random);
+            }
         }
     }
 }
