@@ -1,7 +1,6 @@
 package org.overrun.real4d.world.entity;
 
 import org.joml.RoundingMode;
-import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.overrun.real4d.world.phys.AABBox;
@@ -17,8 +16,8 @@ public class Entity {
     protected Planet planet;
     public final Vector3f pos = new Vector3f();
     public final Vector3f prevPos = new Vector3f();
-    public final Vector2f rot = new Vector2f();
-    public final Vector3f posDelta = new Vector3f();
+    public final Vector3f rot = new Vector3f();
+    public final Vector3f dPos = new Vector3f();
     public AABBox box;
     public boolean onGround;
     public boolean removed;
@@ -53,8 +52,12 @@ public class Entity {
                           final float z) {
         pos.set(x, y, z);
         float w = bbWidth / 2.0f;
-        float h = bbHeight / 2.0f;
-        box = new AABBox(x - w, y - h, z - w, x + w, y + h, z + w);
+        box = new AABBox(x - w,
+            y,
+            z - w,
+            x + w,
+            y + bbHeight,
+            z + w);
     }
 
     public void tick() {
@@ -63,7 +66,7 @@ public class Entity {
 
     public void turn(final float xo,
                      final float yo) {
-        rot.add(yo * 0.15f, xo * 0.15f);
+        rot.add(yo * 0.15f, xo * 0.15f, 0);
         if (rot.x < -90) {
             rot.x = -90;
         } else if (rot.x > 90) {
@@ -104,24 +107,24 @@ public class Entity {
         onGround = yaOrg != ya && yaOrg < 0;
 
         if (xaOrg != xa) {
-            posDelta.x = 0;
+            dPos.x = 0;
         }
         if (yaOrg != ya) {
-            posDelta.y = 0;
+            dPos.y = 0;
         }
         if (zaOrg != za) {
-            posDelta.z = 0;
+            dPos.z = 0;
         }
 
         pos.set((box.min.x + box.max.x) / 2.0f,
-            box.min.y + eyeHeight,
+            box.min.y,
             (box.min.z + box.max.z) / 2.0f);
     }
 
     public void moveRelative(float xa,
                              float za,
                              final float speed) {
-        var dist = xa * xa + za * za;
+        var dist = fma(xa, xa, za * za);
         if (dist >= 0.01) {
             dist = speed / (float) sqrt(dist);
             xa *= dist;
@@ -129,7 +132,7 @@ public class Entity {
             var rad = toRadians(rot.y);
             var sin = sin(rad);
             var cos = cos(rad);
-            posDelta.add((float) (xa * cos - za * sin),
+            dPos.add((float) (xa * cos - za * sin),
                 0,
                 (float) (za * cos + xa * sin));
         }

@@ -17,9 +17,9 @@ import static org.overrun.real4d.asset.AssetManager.makePath;
  */
 public class Human extends Entity {
     private static final HumanModel MODEL = new HumanModel();
-    public static final Identifier TEXTURE = new Identifier("textures/entity/steve.png");
+    public static final Identifier TEXTURE = new Identifier("textures/entity/human.png");
     public static Texture2D texture;
-    public float rot = (float) (random() * PI * 2);
+    public float rotf = (float) (random() * PI * 2);
     public float timeOffs = (float) random() * 1239813;
     public float speed = 1;
     public float rotA = (float) (random() + 1) * 0.01f;
@@ -39,23 +39,23 @@ public class Human extends Entity {
 
         if (pos.y < -64) remove();
 
-        rot += rotA;
+        rotf += rotA;
         rotA *= 0.99;
         rotA += (random() - random()) * random() * random() * 0.07999999821186066;
 
-        float xa = (float) sin(rot);
-        float za = (float) cos(rot);
+        float xa = (float) sin(rotf);
+        float za = (float) cos(rotf);
 
         if (onGround && random() < 0.08) {
-            posDelta.y = 0.5f;
+            dPos.y = 0.5f;
         }
 
         moveRelative(xa, za, onGround ? 0.1f : 0.02f);
-        posDelta.y -= 0.08;
-        move(posDelta);
-        posDelta.mul(0.91f, 0.98f, 0.91f);
+        dPos.y -= 0.08;
+        move(dPos);
+        dPos.mul(0.91f, 0.98f, 0.91f);
         if (onGround) {
-            posDelta.mul(0.7f, 1, 0.7f);
+            dPos.mul(0.7f, 1, 0.7f);
         }
     }
 
@@ -70,14 +70,13 @@ public class Human extends Entity {
         glPushMatrix();
 
         double time = System.nanoTime() / 1000000000.0 * 10 * speed + timeOffs;
-        float size = 0.058333334f;
+        float size = 1f / 16f;
         float yy = (float) (-Math.abs(sin(time * 0.6662)) * 5 - 13);
-        pPosHolder.set(prevPos).lerp(pos, delta);
+        prevPos.lerp(pos, delta, pPosHolder);
         glTranslatef(pPosHolder.x, pPosHolder.y, pPosHolder.z);
-        glScalef(1, -1, 1);
         glScalef(size, size, size);
-        glTranslatef(0, yy, 0);
-        glRotated(toDegrees(rot) + 180, 0, 1, 0);
+        //glTranslatef(0, yy, 0);
+        glRotated(toDegrees(rotf) + 180, 0, 1, 0);
         MODEL.render((float) time);
         glPopMatrix();
         glDisable(GL_TEXTURE_2D);

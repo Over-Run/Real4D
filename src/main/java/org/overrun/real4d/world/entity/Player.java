@@ -1,5 +1,6 @@
 package org.overrun.real4d.world.entity;
 
+import org.overrun.real4d.client.Camera;
 import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.block.Blocks;
 import org.overrun.real4d.world.planet.Planet;
@@ -13,6 +14,7 @@ import static org.overrun.glutils.game.GameEngine.input;
  */
 public class Player extends Entity {
     public final Block[] hotBar = new Block[10];
+    public final Camera camera = new Camera();
     public int select = 0;
     public boolean isSneaking;
     public boolean isRunning;
@@ -31,8 +33,19 @@ public class Player extends Entity {
     }
 
     @Override
+    public void move(float xa,
+                     float ya,
+                     float za) {
+        super.move(xa, ya, za);
+        camera.pos.set((box.min.x + box.max.x) / 2.0f,
+            box.min.y + eyeHeight,
+            (box.min.z + box.max.z) / 2.0f);
+    }
+
+    @Override
     public void tick() {
         super.tick();
+        camera.prevPos.set(camera.pos);
         float xa = 0, za = 0;
         if (input.keyPressed(GLFW_KEY_R)) {
             resetPos();
@@ -50,7 +63,7 @@ public class Player extends Entity {
             ++xa;
         }
         if (input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
-            posDelta.y = 0.5f;
+            dPos.y = 0.5f;
         }
         if (input.keyPressed(GLFW_KEY_LEFT_SHIFT)
             || input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
@@ -82,11 +95,11 @@ public class Player extends Entity {
             }
         }
         moveRelative(xa, za, speed);
-        posDelta.y -= 0.08;
-        move(posDelta);
-        posDelta.mul(0.91f, 0.98f, 0.91f);
+        dPos.y -= 0.08;
+        move(dPos);
+        dPos.mul(0.91f, 0.98f, 0.91f);
         if (onGround) {
-            posDelta.mul(0.7f, 1, 0.7f);
+            dPos.mul(0.7f, 1, 0.7f);
         }
     }
 

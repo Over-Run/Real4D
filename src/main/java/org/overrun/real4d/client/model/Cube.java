@@ -1,6 +1,5 @@
 package org.overrun.real4d.client.model;
 
-import static java.lang.Math.toDegrees;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -9,6 +8,8 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class Cube {
     private Polygon[] polygons;
+    private final int maxU;
+    private final int maxV;
     private int xTexOffs;
     private int yTexOffs;
     public float x;
@@ -20,9 +21,18 @@ public class Cube {
     private boolean compiled = false;
     private int list = 0;
 
+    public Cube(int maxU,
+                int maxV,
+                int xTexOffs,
+                int yTexOffs) {
+        this.maxU = maxU;
+        this.maxV = maxV;
+        setTexOffs(xTexOffs, yTexOffs);
+    }
+
     public Cube(int xTexOffs,
                 int yTexOffs) {
-        setTexOffs(xTexOffs, yTexOffs);
+        this(64, 64, xTexOffs, yTexOffs);
     }
 
     public void setTexOffs(int xTexOffs, int yTexOffs) {
@@ -37,23 +47,72 @@ public class Cube {
                        int h,
                        int d) {
         polygons = new Polygon[6];
-        float x1 = x0 + (float) w;
-        float y1 = y0 + (float) h;
-        float z1 = z0 + (float) d;
-        var u0 = new Vertex(x0, y0, z0, 0, 0);
-        var u1 = new Vertex(x1, y0, z0, 0, 8);
-        var u2 = new Vertex(x1, y1, z0, 8, 8);
-        var u3 = new Vertex(x0, y1, z0, 8, 0);
-        var l0 = new Vertex(x0, y0, z1, 0, 0);
-        var l1 = new Vertex(x1, y0, z1, 0, 8);
-        var l2 = new Vertex(x1, y1, z1, 8, 8);
-        var l3 = new Vertex(x0, y1, z1, 8, 0);
-        polygons[0] = new Polygon(xTexOffs + d + w, yTexOffs + d, xTexOffs + d + w + d, yTexOffs + d + h, l1, u1, u2, l2);
-        polygons[1] = new Polygon(xTexOffs, yTexOffs + d, xTexOffs + d, yTexOffs + d + h, u0, l0, l3, u3);
-        polygons[2] = new Polygon(xTexOffs + d, yTexOffs, xTexOffs + d + w, yTexOffs + d, l1, l0, u0, u1);
-        polygons[3] = new Polygon(xTexOffs + d + w, yTexOffs, xTexOffs + d + w + w, yTexOffs + d, u2, u3, l3, l2);
-        polygons[4] = new Polygon(xTexOffs + d, yTexOffs + d, xTexOffs + d + w, yTexOffs + d + h, u1, u0, u3, u2);
-        polygons[5] = new Polygon(xTexOffs + d + w + d, yTexOffs + d, xTexOffs + d + w + d + w, yTexOffs + d + h, l0, l1, l2, l3);
+        var x1 = x0 + w;
+        var y1 = y0 + h;
+        var z1 = z0 + d;
+        // The 1st, 2nd, 3rd, 4th vertex on axis-z 0 or 1
+        var z00 = new Vertex(x0, y1, z0, 8, 0);
+        var z01 = new Vertex(x0, y0, z0, 8, 8);
+        var z02 = new Vertex(x1, y0, z0, 0, 8);
+        var z03 = new Vertex(x1, y1, z0, 0, 0);
+        var z10 = new Vertex(x0, y1, z1, 0, 0);
+        var z11 = new Vertex(x0, y0, z1, 0, 8);
+        var z12 = new Vertex(x1, y0, z1, 8, 8);
+        var z13 = new Vertex(x1, y1, z1, 8, 0);
+        // West
+        polygons[0] = new Polygon(
+            maxU, maxV,
+            xTexOffs,
+            yTexOffs + d,
+            xTexOffs + d,
+            yTexOffs + d + h,
+            z00, z01, z11, z10
+        );
+        // East
+        polygons[1] = new Polygon(
+            maxU, maxV,
+            xTexOffs + d + w,
+            yTexOffs + d,
+            xTexOffs + d + w + d,
+            yTexOffs + d + h,
+            z13, z12, z02, z03
+        );
+        // Down
+        polygons[2] = new Polygon(
+            maxU, maxV,
+            xTexOffs + d + w,
+            yTexOffs,
+            xTexOffs + d + w + d,
+            yTexOffs + d,
+            z11, z01, z02, z12
+        );
+        // Up
+        polygons[3] = new Polygon(
+            maxU, maxV,
+            xTexOffs + d,
+            yTexOffs,
+            xTexOffs + d + w,
+            yTexOffs + d,
+            z00, z10, z13, z03
+        );
+        // North
+        polygons[4] = new Polygon(
+            maxU, maxV,
+            xTexOffs + d,
+            yTexOffs + d,
+            xTexOffs + d + w,
+            yTexOffs + d + h,
+            z03, z02, z01, z00
+        );
+        // South
+        polygons[5] = new Polygon(
+            maxU, maxV,
+            xTexOffs + d + w + d,
+            yTexOffs + d,
+            xTexOffs + d + w + d + w,
+            yTexOffs + d + h,
+            z10, z11, z12, z13
+        );
     }
 
     public void setPos(float x,
@@ -71,9 +130,9 @@ public class Cube {
 
         glPushMatrix();
         glTranslatef(x, y, z);
-        glRotated(toDegrees(zRot), 0, 0, 1);
-        glRotated(toDegrees(yRot), 0, 1, 0);
-        glRotated(toDegrees(xRot), 1, 0, 0);
+        glRotated(zRot, 0, 0, 1);
+        glRotated(yRot, 0, 1, 0);
+        glRotated(xRot, 1, 0, 0);
         glCallList(list);
         glPopMatrix();
     }

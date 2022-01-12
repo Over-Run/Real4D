@@ -50,7 +50,6 @@ public class Real4D extends Game {
         "Facing: %s (Towards %s) (%f / %f)",
         "Client Light: %d"
     };
-    private final Camera camera = new Camera();
     private final Vector3i hotBarVec = new Vector3i(-2, 0, 0);
     private final ArrayList<Human> humans = new ArrayList<>();
     private boolean debugging = false;
@@ -59,6 +58,7 @@ public class Real4D extends Game {
     private Planet planet;
     private PlanetRenderer planetRenderer;
     private Player player;
+    private Camera attachCamera;
     private HitResult hitResult;
     private int lastDestroyTick = 0;
     private int lastPlaceTick = 0;
@@ -110,6 +110,7 @@ public class Real4D extends Game {
         planet = new Planet(256, 64, 256);
         planetRenderer = new PlanetRenderer(planet);
         player = new Player(planet);
+        attachCamera = player.camera;
         window.setGrabbed(true);
         for (int i = 0; i < 10; i++) {
             var human = new Human(planet, 128, 0, 128);
@@ -300,26 +301,51 @@ public class Real4D extends Game {
         // Crossing
         glPushMatrix();
         glTranslatef(wc, hc, 0);
-        glDisable(GL_ALPHA_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
-        glColor4f(1, 1, 1, 0.5f);
-        t.init(GL_QUADS)
-            .vertex(1, -4, 0)
-            .vertex(0, -4, 0)
-            .vertex(0, 5, 0)
-            .vertex(1, 5, 0)
-            .vertex(5, 0, 0)
-            .vertex(1, 0, 0)
-            .vertex(1, 1, 0)
-            .vertex(5, 1, 0)
-            .vertex(0, 0, 0)
-            .vertex(-4, 0, 0)
-            .vertex(-4, 1, 0)
-            .vertex(0, 1, 0)
-            .draw();
-        glDisable(GL_BLEND);
-        glEnable(GL_ALPHA_TEST);
+        t.init(GL_QUADS);
+        if (!debugging) {
+            glDisable(GL_ALPHA_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
+            glColor4f(1, 1, 1, 0.5f);
+            t.vertex(1, -4, 0)
+                .vertex(0, -4, 0)
+                .vertex(0, 5, 0)
+                .vertex(1, 5, 0)
+                .vertex(5, 0, 0)
+                .vertex(1, 0, 0)
+                .vertex(1, 1, 0)
+                .vertex(5, 1, 0)
+                .vertex(0, 0, 0)
+                .vertex(-4, 0, 0)
+                .vertex(-4, 1, 0)
+                .vertex(0, 1, 0)
+                .draw();
+            glDisable(GL_BLEND);
+            glEnable(GL_ALPHA_TEST);
+        } else {
+            glDisable(GL_CULL_FACE);
+            t.color(1, 0, 0)
+                .vertex(5, 0, 0)
+                .vertex(1, 0, 0)
+                .vertex(1, 1, 0)
+                .vertex(5, 1, 0)
+                .color(0, 1, 0)
+                .vertex(1, -4, 0)
+                .vertex(0, -4, 0)
+                .vertex(0, 0, 0)
+                .vertex(1, 0, 0)
+                .color(0, 0, 1)
+                .vertex(0, 1, 0)
+                .vertex(0, 0, 0)
+                .vertex(0, 0, -4)
+                .vertex(0, 1, -4);
+            glPushMatrix();
+            glRotatef(player.rot.y, 0, -1, 0);
+            glRotatef(player.rot.x, -1, 0, 0);
+            t.draw();
+            glPopMatrix();
+            glEnable(GL_CULL_FACE);
+        }
         glPopMatrix();
     }
 
@@ -361,26 +387,15 @@ public class Real4D extends Game {
         player.tick();
     }
 
-    private void moveCameraToPlayer(float delta) {
-        glTranslatef(0, 0, -0.3f);
-        glRotatef(player.rot.x, 1, 0, 0);
-        glRotatef(player.rot.y, 0, 1, 0);
-        var pos = camera.pos.set(player.prevPos).lerp(player.pos, delta);
-        float x = pos.x;
-        float y = pos.y;
-        float z = pos.z;
-        glTranslatef(-x, -y, -z);
-    }
-
     private void setupCamera(float delta) {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         var fovy = 90f;
-        if (player.isRunning) {
-            fovy += 5f;
-        }
         if (input.keyPressed(GLFW_KEY_C)) {
             fovy = 25f;
+        }
+        if (player.isRunning) {
+            fovy += 5f;
         }
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
@@ -388,7 +403,7 @@ public class Real4D extends Game {
             1000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        moveCameraToPlayer(delta);
+        attachCamera.moveToPlayer(player, delta);
     }
 
     private void setupPickCamera(float delta,
@@ -399,11 +414,11 @@ public class Real4D extends Game {
         glGetIntegerv(GL_VIEWPORT, viewportBuffer.clear());
         gluPickMatrix(x, y, 5, 5, viewportBuffer.flip().limit(16));
         var fovy = 90f;
-        if (player.isRunning) {
-            fovy += 5f;
-        }
         if (input.keyPressed(GLFW_KEY_C)) {
             fovy = 25f;
+        }
+        if (player.isRunning) {
+            fovy += 5f;
         }
         gluPerspective(fovy,
             (float) bufFrame.width() / (float) bufFrame.height(),
@@ -411,7 +426,7 @@ public class Real4D extends Game {
             1000.0f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        moveCameraToPlayer(delta);
+        attachCamera.moveToPlayer(player, delta);
     }
 
     private void setupFog(int layer) {
