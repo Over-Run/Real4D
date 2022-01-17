@@ -1,6 +1,5 @@
 package org.overrun.real4d.client.gui.screen;
 
-import org.overrun.glutils.game.Screen;
 import org.overrun.glutils.gl.ll.Tesselator;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -9,7 +8,7 @@ import static org.lwjgl.opengl.GL11.*;
  * @author squid233
  * @since 0.1.0
  */
-public class PausingScreen extends BaseScreen {
+public class PausingScreen extends Screen {
     /**
      * Construct the screen with a parent.
      *

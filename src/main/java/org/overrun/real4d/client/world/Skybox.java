@@ -79,8 +79,8 @@ public class Skybox {
         FRONT = new Identifier("textures/skybox/front.jpg"),
         BACK = new Identifier("textures/skybox/back.jpg");
     public static final Identifier
-        VERTEX_SHADER = new Identifier("shaders/skybox.vert"),
-        FRAGMENT_SHADER = new Identifier("shaders/skybox.frag");
+        VERT_SHADER = new Identifier("shaders/skybox.vert"),
+        FRAG_SHADER = new Identifier("shaders/skybox.frag");
     private static final Matrix4f matrix = new Matrix4f();
     public final int id = glGenTextures();
     public final Vao vao = new Vao();
@@ -89,8 +89,8 @@ public class Skybox {
     public final GLProgram program = new GLProgram();
 
     public Skybox() {
-        program.createVsh(lines(this, makePath(VERTEX_SHADER)));
-        program.createFsh(lines(this, makePath(FRAGMENT_SHADER)));
+        program.createVsh(lines(this, makePath(VERT_SHADER)));
+        program.createFsh(lines(this, makePath(FRAG_SHADER)));
         program.link();
         vao.bind();
         vbo.bind();

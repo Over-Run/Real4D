@@ -3,7 +3,7 @@ package org.overrun.real4d.world.entity;
 import org.joml.RoundingMode;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
-import org.overrun.glutils.timer.TimerID;
+import org.overrun.real4d.client.Real4D;
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.Planet;
 
@@ -23,11 +23,13 @@ public class Entity {
     public boolean onGround;
     public boolean removed;
     public float eyeHeight;
+    protected Real4D client;
     protected float bbWidth = 0.6f;
     protected float bbHeight = 1.8f;
 
     public Entity(Planet planet) {
         this.planet = planet;
+        client = Real4D.INSTANCE;
         resetPos();
     }
 
@@ -61,7 +63,7 @@ public class Entity {
             z + w);
     }
 
-    public void tick(TimerID timer) {
+    public void tick() {
         prevPos.set(pos);
     }
 

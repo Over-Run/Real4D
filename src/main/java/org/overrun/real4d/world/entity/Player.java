@@ -1,13 +1,11 @@
 package org.overrun.real4d.world.entity;
 
-import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.client.Camera;
 import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.block.Blocks;
 import org.overrun.real4d.world.planet.Planet;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.overrun.glutils.game.GameEngine.input;
 
 /**
  * @author squid233
@@ -44,30 +42,30 @@ public class Player extends Entity {
     }
 
     @Override
-    public void tick(TimerID timer) {
-        super.tick(timer);
+    public void tick() {
+        super.tick();
         camera.prevPos.set(camera.pos);
         float xa = 0, za = 0;
-        if (input.keyPressed(GLFW_KEY_R)) {
+        if (client.input.keyPressed(GLFW_KEY_R)) {
             resetPos();
         }
-        if (input.keyPressed(GLFW_KEY_W)) {
+        if (client.input.keyPressed(GLFW_KEY_W)) {
             --za;
         }
-        if (input.keyPressed(GLFW_KEY_S)) {
+        if (client.input.keyPressed(GLFW_KEY_S)) {
             ++za;
         }
-        if (input.keyPressed(GLFW_KEY_A)) {
+        if (client.input.keyPressed(GLFW_KEY_A)) {
             --xa;
         }
-        if (input.keyPressed(GLFW_KEY_D)) {
+        if (client.input.keyPressed(GLFW_KEY_D)) {
             ++xa;
         }
-        if (input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
+        if (client.input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
             dPos.y = 0.5f;
         }
-        if (input.keyPressed(GLFW_KEY_LEFT_SHIFT)
-            || input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
+        if (client.input.keyPressed(GLFW_KEY_LEFT_SHIFT)
+            || client.input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
             isSneaking = true;
             bbHeight = 1.5f;
             eyeHeight = 1.32f;
@@ -76,8 +74,8 @@ public class Player extends Entity {
             bbHeight = 1.8f;
             eyeHeight = 1.62f;
         }
-        isRunning = (input.keyPressed(GLFW_KEY_LEFT_CONTROL)
-            || input.keyPressed(GLFW_KEY_RIGHT_CONTROL))
+        isRunning = (client.input.keyPressed(GLFW_KEY_LEFT_CONTROL)
+            || client.input.keyPressed(GLFW_KEY_RIGHT_CONTROL))
             && (xa * xa + za * za >= 0.01f);
         float speed;
         if (onGround) {

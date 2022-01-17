@@ -1,7 +1,9 @@
 package org.overrun.real4d.client.gui.render;
 
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.system.MemoryStack;
+import org.overrun.glutils.gl.Vao;
+import org.overrun.glutils.gl.Vbo;
+import org.overrun.glutils.gl.VertexAttrib;
 import org.overrun.glutils.tex.Images;
 import org.overrun.glutils.tex.TexParam;
 import org.overrun.glutils.tex.Textures;
@@ -18,6 +20,7 @@ import static java.lang.Integer.toHexString;
 import static java.util.Objects.requireNonNull;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.stb.STBImage.*;
+import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.memAlloc;
 import static org.lwjgl.system.MemoryUtil.memFree;
 import static org.overrun.glutils.gl.ll.GLU.gluBuild2DMipmaps;
@@ -30,7 +33,18 @@ import static org.overrun.real4d.client.gl.GLStateMgr.*;
  */
 public class TextRenderer {
     private static final Map<Character, Glyph> GLYPHS =
-        new LinkedHashMap<>();
+        new HashMap<>();
+    /**
+     * The array layout is:<br>
+     * 2 texture coord bytes, 3 vertex bytes, 4 color bytes
+     */
+    private static final Map<Character, float[]> VERTEX_DATA =
+        new HashMap<>();
+    private static Vao vao;
+    private static Vbo vbo;
+    private static final VertexAttrib aPos = new VertexAttrib(0);
+    private static final VertexAttrib aColor = new VertexAttrib(1);
+    private static final VertexAttrib aTexCoords = new VertexAttrib(2);
     private static final int[] ids = new int[1];
     private static int lists;
 
@@ -63,7 +77,7 @@ public class TextRenderer {
         bindTexture2D(id);
         ids[0] = id;
         var cl = TextRenderer.class.getClassLoader();
-        try (var stack = MemoryStack.stackPush()) {
+        try (var stack = stackPush()) {
             var pw = stack.mallocInt(1);
             var ph = stack.mallocInt(1);
             var pc = stack.mallocInt(1);
@@ -141,6 +155,31 @@ public class TextRenderer {
     }
 
     public static void buildLists() {
+        vao = new Vao();
+        vbo = new Vbo(GL_ARRAY_BUFFER);
+        vao.bind();
+        vbo.bind();
+        int stride = (2 + 3 + 4) * Float.BYTES;
+        aPos.enable();
+        aPos.pointer(3,
+            GL_FLOAT,
+            false,
+            stride,
+            2 * Float.BYTES);
+        aColor.enable();
+        aColor.pointer(4,
+            GL_FLOAT,
+            false,
+            stride,
+            5 * Float.BYTES);
+        aTexCoords.enable();
+        aTexCoords.pointer(2,
+            GL_FLOAT,
+            false,
+            stride,
+            0);
+        vbo.unbind();
+        vao.unbind();
         lists = glGenLists(GLYPHS.size());
         int i = 0;
         for (var glyph : GLYPHS.values()) {
@@ -162,6 +201,15 @@ public class TextRenderer {
             glVertex2f(x1, 0);
             glEnd();
             glEndList();
+            VERTEX_DATA.put(
+                (char) i,
+                new float[]{
+                    u0, v0, 0, 0, 0,
+                    v0, v1, 0, y1, 0,
+                    u1, v1, x1, y1, 0,
+                    u1, v0, x1, 0, 0
+                }
+            );
             ++i;
         }
     }
@@ -207,6 +255,34 @@ public class TextRenderer {
         glTranslatef(x, y, z);
         glCallList(lists + c);
         glPopMatrix();
+//        try (var stack = stackPush()) {
+//            // * 4 for 4 vertices
+//            var fb = stack.mallocFloat((2 + 3 + 4) * 4);
+//            var vd = VERTEX_DATA.get(c);
+//            for (int i = 0; i < 4; i++) {
+//                fb.put(vd[i * 5])
+//                    .put(vd[i * 5 + 1])
+//                    .put(vd[i * 5 + 2])
+//                    .put(vd[i * 5 + 3])
+//                    .put(vd[i * 5 + 4])
+//                    .put(textGLProgram.colorsData());
+//            }
+//            textGLProgram.bind();
+//            Textures.active(0);
+//            glBindTexture(GL_TEXTURE_2D, ids[c / 256]);
+//            textGLProgram.setUniformMat4("proj", GLMatrix.getProjection());
+//            GLMatrix.getModelView().pushMatrix().translate(x, y, z);
+//            textGLProgram.setUniformMat4("modelView", GLMatrix.getModelView());
+//            GLMatrix.getModelView().popMatrix();
+//            vao.bind();
+//            vbo.bind();
+//            vbo.data(fb, GL_DYNAMIC_DRAW);
+//            vbo.unbind();
+//            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+//            vao.unbind();
+//            glBindTexture(GL_TEXTURE_2D, 0);
+//            textGLProgram.unbind();
+//        }
         disableTexture2D();
     }
 
@@ -237,5 +313,14 @@ public class TextRenderer {
             if (gh > h) h = gh;
         }
         return h;
+    }
+
+    public static void free() {
+        if (vao != null) {
+            vao.free();
+        }
+        if (vbo != null) {
+            vbo.free();
+        }
     }
 }

@@ -4,7 +4,6 @@ import org.joml.Vector3f;
 import org.overrun.glutils.tex.TexParam;
 import org.overrun.glutils.tex.Texture2D;
 import org.overrun.glutils.tex.Textures;
-import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.client.model.HumanModel;
 import org.overrun.real4d.util.Identifier;
 import org.overrun.real4d.world.planet.Planet;
@@ -37,9 +36,8 @@ public class Human extends Entity {
         setPos(x, y, z);
     }
 
-    @Override
-    public void tick(TimerID timer) {
-        super.tick(timer);
+    public void tick() {
+        super.tick();
 
         if (pos.y < -64) remove();
 
