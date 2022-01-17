@@ -21,7 +21,7 @@ public class Frustum {
     }
 
     private void calculateFrustum() {
-        frustum.set(GLMatrix.getProjection().mul(GLMatrix.getModelview()));
+        frustum.set(GLMatrix.getProjectionl().mul(GLMatrix.getModelviewl()));
     }
 
     public boolean pointInFrustum(float x,

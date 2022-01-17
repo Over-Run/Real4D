@@ -1,5 +1,6 @@
 package org.overrun.real4d.world.entity;
 
+import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.client.Camera;
 import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.block.Blocks;
@@ -43,8 +44,8 @@ public class Player extends Entity {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void tick(TimerID timer) {
+        super.tick(timer);
         camera.prevPos.set(camera.pos);
         float xa = 0, za = 0;
         if (input.keyPressed(GLFW_KEY_R)) {
@@ -100,6 +101,17 @@ public class Player extends Entity {
         dPos.mul(0.91f, 0.98f, 0.91f);
         if (onGround) {
             dPos.mul(0.7f, 1, 0.7f);
+        }
+    }
+
+    @Override
+    public void turn(final float xo,
+                     final float yo) {
+        super.turn(yo * 0.15f, xo * 0.15f);
+        if (rot.x < -90) {
+            rot.x = -90;
+        } else if (rot.x > 90) {
+            rot.x = 90;
         }
     }
 

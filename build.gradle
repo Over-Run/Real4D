@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'application'
     id 'idea'
     id 'signing'
     id 'maven-publish'
@@ -24,27 +24,60 @@ dependencies {
     implementation 'io.github.over-run:glutils:2.0.0-SNAPSHOT'
     implementation 'com.google.code.gson:gson:2.8.9'
     compileOnly 'org.jetbrains:annotations:23.0.0'
-    runtimeOnly 'org.lwjgl:lwjgl::natives-windows'
-    runtimeOnly 'org.lwjgl:lwjgl-glfw::natives-windows'
-    runtimeOnly 'org.lwjgl:lwjgl-opengl::natives-windows'
-    runtimeOnly 'org.lwjgl:lwjgl-stb::natives-windows'
+    def nativeAttrib = [
+        'linux-arm32', 'linux-arm64', 'linux',
+        'macos-arm64', 'macos',
+        'windows-arm64', 'windows-x86', 'windows'
+    ]
+    for (def attrib : nativeAttrib) {
+        runtimeOnly "org.lwjgl:lwjgl::natives-$attrib"
+        runtimeOnly "org.lwjgl:lwjgl-jemalloc::natives-$attrib"
+        runtimeOnly "org.lwjgl:lwjgl-glfw::natives-$attrib"
+        runtimeOnly "org.lwjgl:lwjgl-opengl::natives-$attrib"
+        runtimeOnly "org.lwjgl:lwjgl-stb::natives-$attrib"
+    }
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-jar {
-    from 'LICENSE'
-    manifest {
-        attributes 'Specification-Title': projName,
-                'Specification-Vendor': 'Overrun Organization',
-                'Specification-Version': '0',
-                'Implementation-Title': projName,
-                'Implementation-Vendor': 'Overrun Organization',
-                'Implementation-Version': archiveVersion
-    }
+application {
+    mainClass = 'org.overrun.real4d.client.main.Main'
 }
+
+jar {
+    manifestContentCharset 'utf-8'
+    metadataCharset 'utf-8'
+    from 'LICENSE', 'changelog.txt'
+    manifest.attributes(
+        'Main-Class': 'org.overrun.real4d.client.main.Main',
+        'Specification-Title': projName,
+        'Specification-Vendor': 'Overrun Organization',
+        'Specification-Version': '0',
+        'Implementation-Title': projName,
+        'Implementation-Vendor': 'Overrun Organization',
+        'Implementation-Version': archiveVersion
+    )
+}
+
+javadoc {
+    //-encoding utf-8 -charset utf-8 -windowtitle "Real4D x.y.z Javadoc" -link https://docs.oracle.com/en/java/javase/17/docs/api/
+    failOnError = false
+    options.encoding 'UTF-8'
+    options.charSet 'UTF-8'
+    options.author true
+    options.links 'https://docs.oracle.com/en/java/javase/17/docs/api/'
+    options.windowTitle "Real4D $projVersion Javadoc"
+}
+
+/*task deployJar(type: Jar, dependsOn: build) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+    }
+}*/
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     archiveClassifier.set 'sources'
@@ -63,17 +96,6 @@ artifacts {
 java {
     withJavadocJar()
     withSourcesJar()
-}
-
-javadoc {
-    options {
-        //-encoding utf-8 -charset utf-8 -windowtitle "Real4D x.y.z Javadoc" -link https://docs.oracle.com/en/java/javase/17/docs/api/
-        encoding 'UTF-8'
-        charSet 'UTF-8'
-        author true
-        links 'https://docs.oracle.com/en/java/javase/17/docs/api/'
-        title "Real4D $projVersion Javadoc"
-    }
 }
 
 publishing.publications {
@@ -121,8 +143,8 @@ publishing.repositories {
             password System.getenv("OSSRH_PASSWORD")
         }
         url = version.endsWith('-SNAPSHOT')
-                ? 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
-                : 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            ? 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+            : 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
     }
 }
 

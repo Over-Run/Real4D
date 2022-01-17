@@ -18,6 +18,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.memAlloc;
 import static org.lwjgl.system.MemoryUtil.memFree;
+import static org.overrun.glutils.FilesReader.getInputStream;
 import static org.overrun.glutils.FilesReader.lines;
 import static org.overrun.real4d.asset.AssetManager.makePath;
 
@@ -81,16 +82,15 @@ public class Skybox {
         VERTEX_SHADER = new Identifier("shaders/skybox.vert"),
         FRAGMENT_SHADER = new Identifier("shaders/skybox.frag");
     private static final Matrix4f matrix = new Matrix4f();
-    public final int id = Textures.gen();
+    public final int id = glGenTextures();
     public final Vao vao = new Vao();
     public final Vbo vbo = new Vbo(GL_ARRAY_BUFFER);
     public final VertexAttrib vertexAttrib = new VertexAttrib(0);
     public final GLProgram program = new GLProgram();
 
     public Skybox() {
-        var cl = Skybox.class.getClassLoader();
-        program.createVsh(lines(cl, makePath(VERTEX_SHADER)));
-        program.createFsh(lines(cl, makePath(FRAGMENT_SHADER)));
+        program.createVsh(lines(this, makePath(VERTEX_SHADER)));
+        program.createFsh(lines(this, makePath(FRAGMENT_SHADER)));
         program.link();
         vao.bind();
         vbo.bind();
@@ -121,9 +121,10 @@ public class Skybox {
             var pc = stack.mallocInt(1);
             int i = 0;
             for (var faceID : faces) {
+
                 var face = makePath(faceID);
                 try (var is = requireNonNull(
-                    cl.getResourceAsStream(face)
+                    getInputStream(this, face)
                 ); var bis = new BufferedInputStream(is)) {
                     var arr = bis.readAllBytes();
                     var bb = memAlloc(arr.length).put(arr).flip();
@@ -154,7 +155,7 @@ public class Skybox {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            Textures.genMipmapCubeMap();
+            Textures.genMipmap(GL_TEXTURE_CUBE_MAP);
         } catch (Exception e) {
             throw new RuntimeException();
         }
@@ -162,8 +163,8 @@ public class Skybox {
 
     public void render() {
         program.bind();
-        program.setUniformMat4("proj", GLMatrix.getProjection());
-        var view = GLMatrix.getModelview();
+        program.setUniformMat4("proj", GLMatrix.getProjectionl());
+        var view = GLMatrix.getModelviewl();
         program.setUniformMat4("view", matrix.set(
             view.m00(), view.m01(), view.m02(), 0,
             view.m10(), view.m11(), view.m12(), 0,
@@ -181,7 +182,6 @@ public class Skybox {
     public void free() {
         vao.free();
         vbo.free();
-        program.free();
         glDeleteTextures(id);
     }
 }

@@ -1,8 +1,8 @@
 package org.overrun.real4d.client;
 
-import org.overrun.glutils.game.Texture2D;
 import org.overrun.glutils.light.Direction;
 import org.overrun.glutils.tex.TexParam;
+import org.overrun.glutils.tex.Textures;
 import org.overrun.glutils.tex.stitch.Block;
 import org.overrun.glutils.tex.stitch.Sprite;
 import org.overrun.glutils.tex.stitch.Stitcher;
@@ -44,21 +44,20 @@ public class SpriteAtlases {
             }
             list.add(BlockModels.toTexFilePath(id));
         }
-        BLOCK_ATLAS = Stitcher.stitchStb(SpriteAtlases.class,
+        BLOCK_ATLAS = Stitcher.stitch(SpriteAtlases.class,
             TexParam.glNearest(),
             list.toArray(new String[0]));
-        var widgets = new Texture2D(SpriteAtlases.class,
+        var widgets = Textures.load2D(SpriteAtlases.class,
             AssetManager.makePath(Widgets.WIDGETS_TEXTURE),
-            TexParam.glNearest());
+            TexParam.glNearest(),
+            true);
         WIDGETS_ATLAS = new Real4DAtlas(widgets.width(),
             widgets.height(),
             widgets.getId(),
             new Sprite(HOT_BAR,
-                Block.of(0, 0, 202, 22),
-                null),
+                Block.of(0, 0, 202, 22)),
             new Sprite(HOT_BAR_SELECT,
-                Block.of(0, 22, 24, 24),
-                null)
+                Block.of(0, 22, 24, 24))
         );
     }
 

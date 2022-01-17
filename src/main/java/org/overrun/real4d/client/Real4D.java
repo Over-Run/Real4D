@@ -1,10 +1,13 @@
 package org.overrun.real4d.client;
 
 import org.joml.Vector3i;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.Callback;
 import org.overrun.glutils.GLUtils;
 import org.overrun.glutils.game.Game;
 import org.overrun.glutils.gl.ll.Tesselator;
 import org.overrun.glutils.light.Direction;
+import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.client.gui.render.TextRenderer;
 import org.overrun.real4d.client.gui.screen.PausingScreen;
 import org.overrun.real4d.client.world.Skybox;
@@ -20,6 +23,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 
+import static java.lang.System.nanoTime;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -28,11 +32,13 @@ import static org.overrun.glutils.gl.ll.GLU.gluPerspective;
 import static org.overrun.glutils.gl.ll.GLU.gluPickMatrix;
 import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
 import static org.overrun.real4d.client.SpriteAtlases.WIDGETS_ATLAS;
+import static org.overrun.real4d.client.gl.GLStateMgr.*;
 import static org.overrun.real4d.client.gui.DrawableHelper.draw;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR;
 import static org.overrun.real4d.client.gui.Widgets.HOT_BAR_SELECT;
 import static org.overrun.real4d.client.gui.render.TextRenderer.drawText;
 import static org.overrun.real4d.client.world.render.PlanetRenderer.CHUNK_SIZE;
+import static org.overrun.real4d.internal.RandomSeed.seedUniquifier;
 
 /**
  * @author squid233
@@ -64,6 +70,7 @@ public class Real4D extends Game {
     private int lastPlaceTick = 0;
     private int matHotBarBlock;
     private boolean isPaused;
+    private Callback debugProc;
 
     /**
      * Init game objects
@@ -80,7 +87,11 @@ public class Real4D extends Game {
             );
         }
 
-        glEnable(GL_TEXTURE_2D);
+        if (JVMArgs.isDebugging()) {
+            debugProc = GLUtil.setupDebugMessageCallback();
+        }
+
+        enableTexture2D();
         glShadeModel(GL_SMOOTH);
         glClearColor(0.4f, 0.6f, 0.9f, 0.0f);
         glClearDepth(1.0);
@@ -107,7 +118,10 @@ public class Real4D extends Game {
 
         Blocks.register();
         SpriteAtlases.load();
-        planet = new Planet(256, 64, 256);
+        planet = new Planet(seedUniquifier() ^ nanoTime(),
+            256,
+            64,
+            256);
         planetRenderer = new PlanetRenderer(planet);
         player = new Player(planet);
         attachCamera = player.camera;
@@ -125,7 +139,7 @@ public class Real4D extends Game {
         setupPickCamera(delta, bufFrame.width() / 2.0f, bufFrame.height() / 2.0f);
         planetRenderer.pick(player, Frustum.getFrustum());
         int hits = glRenderMode(GL_RENDER);
-        selectBuffer.flip().limit(selectBuffer.capacity());
+        selectBuffer.limit(selectBuffer.capacity());
         long closest = 0;
         var names = new int[10];
         int hitNameCount = 0;
@@ -158,7 +172,9 @@ public class Real4D extends Game {
 
     @Override
     public void render() {
-        var delta = (float) timer.getDelta();
+        var delta = (float) timerMgr.getID(0)
+            .get()
+            .getDelta();
         pick(delta);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setupCamera(delta);
@@ -185,7 +201,7 @@ public class Real4D extends Game {
         }
 
         glDisable(GL_LIGHTING);
-        glDisable(GL_TEXTURE_2D);
+        disableTexture2D();
         if (enableFog) glDisable(GL_FOG);
 
         if (hitResult != null) {
@@ -271,8 +287,8 @@ public class Real4D extends Game {
         }
 
         // Hot bar
-        glEnable(GL_TEXTURE_2D);
-        WIDGETS_ATLAS.bind();
+        enableTexture2D();
+        bindTexture2D(WIDGETS_ATLAS.getId());
         glPushMatrix();
         {
             final int w = 202;
@@ -285,7 +301,7 @@ public class Real4D extends Game {
             draw(t, WIDGETS_ATLAS, HOT_BAR_SELECT, sx, -2, 24, 24);
             t.draw();
         }
-        BLOCK_ATLAS.bind();
+        bindTexture2D(BLOCK_ATLAS.getId());
         for (int i = 0; i < player.hotBar.length; i++) {
             glPushMatrix();
             glTranslatef(4 + i * 20, 1, 20);
@@ -296,18 +312,18 @@ public class Real4D extends Game {
             glPopMatrix();
         }
         glPopMatrix();
-        glDisable(GL_TEXTURE_2D);
+        disableTexture2D();
 
         // Crossing
         glPushMatrix();
         glTranslatef(wc, hc, 0);
-        t.init(GL_QUADS);
         if (!debugging) {
             glDisable(GL_ALPHA_TEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
             glColor4f(1, 1, 1, 0.5f);
-            t.vertex(1, -4, 0)
+            t.init(GL_QUADS)
+                .vertex(1, -4, 0)
                 .vertex(0, -4, 0)
                 .vertex(0, 5, 0)
                 .vertex(1, 5, 0)
@@ -324,25 +340,21 @@ public class Real4D extends Game {
             glEnable(GL_ALPHA_TEST);
         } else {
             glDisable(GL_CULL_FACE);
-            t.color(1, 0, 0)
-                .vertex(5, 0, 0)
-                .vertex(1, 0, 0)
-                .vertex(1, 1, 0)
-                .vertex(5, 1, 0)
+            glPushMatrix();
+            glScalef(2, 2, 2);
+            glRotatef(player.rot.x, -1, 0, 0);
+            glRotatef(player.rot.y, 0, 1, 0);
+            t.init(GL_LINES)
+                .color(1, 0, 0)
+                .vertex(0, 0, 0)
+                .vertex(4, 0, 0)
                 .color(0, 1, 0)
-                .vertex(1, -4, 0)
                 .vertex(0, -4, 0)
                 .vertex(0, 0, 0)
-                .vertex(1, 0, 0)
                 .color(0, 0, 1)
-                .vertex(0, 1, 0)
                 .vertex(0, 0, 0)
-                .vertex(0, 0, -4)
-                .vertex(0, 1, -4);
-            glPushMatrix();
-            glRotatef(player.rot.y, 0, -1, 0);
-            glRotatef(player.rot.x, -1, 0, 0);
-            t.draw();
+                .vertex(0, 0, 4)
+                .draw();
             glPopMatrix();
             glEnable(GL_CULL_FACE);
         }
@@ -350,7 +362,7 @@ public class Real4D extends Game {
     }
 
     @Override
-    public void tick() {
+    public void tick(TimerID timer) {
         if (lastDestroyTick > 0) --lastDestroyTick;
         if (lastPlaceTick > 0) --lastPlaceTick;
         if (hitResult != null) {
@@ -379,12 +391,12 @@ public class Real4D extends Game {
         planet.tick();
         for (int i = 0; i < humans.size(); i++) {
             var human = humans.get(i);
-            human.tick();
+            human.tick(timer);
             if (human.removed) {
                 humans.remove(i--);
             }
         }
-        player.tick();
+        player.tick(timer);
     }
 
     private void setupCamera(float delta) {
@@ -412,7 +424,7 @@ public class Real4D extends Game {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glGetIntegerv(GL_VIEWPORT, viewportBuffer.clear());
-        gluPickMatrix(x, y, 5, 5, viewportBuffer.flip().limit(16));
+        gluPickMatrix(x, y, 5, 5, viewportBuffer.limit(16));
         var fovy = 90f;
         if (input.keyPressed(GLFW_KEY_C)) {
             fovy = 25f;
@@ -484,7 +496,9 @@ public class Real4D extends Game {
             case GLFW_KEY_ESCAPE -> {
                 isPaused = !isPaused;
                 window.setGrabbed(!isPaused);
-                timer.setTimeScale(isPaused ? 0 : 1);
+                timerMgr.getID(0)
+                    .get()
+                    .setTimeScale(isPaused ? 0 : 1);
                 if (isPaused) {
                     openScreen(new PausingScreen(null));
                 } else {
@@ -519,6 +533,10 @@ public class Real4D extends Game {
 
     @Override
     public void free() {
+        if (debugProc != null) {
+            debugProc.free();
+        }
+        Tesselator.getInstance().free();
         memFree(viewportBuffer);
         memFree(selectBuffer);
         memFree(lightingBuffer);

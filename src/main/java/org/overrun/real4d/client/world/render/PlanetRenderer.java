@@ -17,6 +17,7 @@ import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.overrun.real4d.client.SpriteAtlases.BLOCK_ATLAS;
+import static org.overrun.real4d.client.gl.GLStateMgr.*;
 import static org.overrun.real4d.util.VectorPool.vec3AllocInt;
 
 /**
@@ -77,15 +78,15 @@ public class PlanetRenderer implements PlanetListener {
     }
 
     public void render(int layer) {
-        glEnable(GL_TEXTURE_2D);
-        BLOCK_ATLAS.bind();
+        enableTexture2D();
+        bindTexture2D(BLOCK_ATLAS.getId());
         Frustum frustum = Frustum.getFrustum();
         for (var chunk : chunks) {
             if (frustum.isVisible(chunk.aabb)) {
                 chunk.render(layer);
             }
         }
-        glDisable(GL_TEXTURE_2D);
+        disableTexture2D();
     }
 
     public void updateDirtyChunks(Player player) {

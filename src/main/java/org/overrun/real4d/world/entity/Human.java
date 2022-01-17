@@ -1,8 +1,10 @@
 package org.overrun.real4d.world.entity;
 
 import org.joml.Vector3f;
-import org.overrun.glutils.game.Texture2D;
 import org.overrun.glutils.tex.TexParam;
+import org.overrun.glutils.tex.Texture2D;
+import org.overrun.glutils.tex.Textures;
+import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.client.model.HumanModel;
 import org.overrun.real4d.util.Identifier;
 import org.overrun.real4d.world.planet.Planet;
@@ -10,6 +12,8 @@ import org.overrun.real4d.world.planet.Planet;
 import static java.lang.Math.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.overrun.real4d.asset.AssetManager.makePath;
+import static org.overrun.real4d.client.gl.GLStateMgr.disableTexture2D;
+import static org.overrun.real4d.client.gl.GLStateMgr.enableTexture2D;
 
 /**
  * @author squid233
@@ -34,23 +38,27 @@ public class Human extends Entity {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void tick(TimerID timer) {
+        super.tick(timer);
 
         if (pos.y < -64) remove();
 
-        rotf += rotA;
+        rot.y += toDegrees(rotA);
         rotA *= 0.99;
-        rotA += (random() - random()) * random() * random() * 0.07999999821186066;
+        rotA += (random() - random()) * random() * random() * 0.08;
 
-        float xa = (float) sin(rotf);
-        float za = (float) cos(rotf);
+        var rad = toRadians(rot.y);
+        var xa = (float) sin(rad);
+        var za = (float) cos(rad);
 
         if (onGround && random() < 0.08) {
             dPos.y = 0.5f;
         }
 
+        var rotYO = rot.y;
+        rot.y = 0;
         moveRelative(xa, za, onGround ? 0.1f : 0.02f);
+        rot.y = rotYO;
         dPos.y -= 0.08;
         move(dPos);
         dPos.mul(0.91f, 0.98f, 0.91f);
@@ -60,26 +68,27 @@ public class Human extends Entity {
     }
 
     public void render(float delta) {
-        glEnable(GL_TEXTURE_2D);
+        enableTexture2D();
         if (texture == null) {
-            texture = new Texture2D(Human.class,
+            texture = Textures.load2D(this,
                 makePath(TEXTURE),
-                TexParam.glNearest());
+                TexParam.glNearest(),
+                true);
         }
         texture.bind();
-        glPushMatrix();
 
+        glPushMatrix();
         double time = System.nanoTime() / 1000000000.0 * 10 * speed + timeOffs;
         float size = 1f / 16f;
         float yy = (float) (-Math.abs(sin(time * 0.6662)) * 5 - 13);
         prevPos.lerp(pos, delta, pPosHolder);
         glTranslatef(pPosHolder.x, pPosHolder.y, pPosHolder.z);
         glScalef(size, size, size);
-        //glTranslatef(0, yy, 0);
-        glRotated(toDegrees(rotf) + 180, 0, 1, 0);
+        glRotated(rot.y + 180, 0, 1, 0);
         MODEL.render((float) time);
         glPopMatrix();
-        glDisable(GL_TEXTURE_2D);
+
+        disableTexture2D();
     }
 
     public static void free() {

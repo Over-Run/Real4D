@@ -3,6 +3,7 @@ package org.overrun.real4d.world.entity;
 import org.joml.RoundingMode;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.overrun.glutils.timer.TimerID;
 import org.overrun.real4d.world.phys.AABBox;
 import org.overrun.real4d.world.planet.Planet;
 
@@ -60,18 +61,13 @@ public class Entity {
             z + w);
     }
 
-    public void tick() {
+    public void tick(TimerID timer) {
         prevPos.set(pos);
     }
 
     public void turn(final float xo,
                      final float yo) {
-        rot.add(yo * 0.15f, xo * 0.15f, 0);
-        if (rot.x < -90) {
-            rot.x = -90;
-        } else if (rot.x > 90) {
-            rot.x = 90;
-        }
+        rot.add(xo, yo, 0);
         if (rot.y > 180) {
             rot.y = -180;
         } else if (rot.y < -180) {
@@ -121,6 +117,13 @@ public class Entity {
             (box.min.z + box.max.z) / 2.0f);
     }
 
+    /**
+     * Relative moving
+     *
+     * @param xa    X factor
+     * @param za    Z factor
+     * @param speed Speed molecule
+     */
     public void moveRelative(float xa,
                              float za,
                              final float speed) {

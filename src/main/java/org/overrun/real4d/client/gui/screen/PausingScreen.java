@@ -4,7 +4,6 @@ import org.overrun.glutils.game.Screen;
 import org.overrun.glutils.gl.ll.Tesselator;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL11.GL_BLEND;
 
 /**
  * @author squid233

@@ -16,12 +16,13 @@ import java.util.function.Consumer;
 import static java.lang.Integer.parseInt;
 import static java.lang.Integer.toHexString;
 import static java.util.Objects.requireNonNull;
-import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.memAlloc;
 import static org.lwjgl.system.MemoryUtil.memFree;
 import static org.overrun.glutils.gl.ll.GLU.gluBuild2DMipmaps;
 import static org.overrun.real4d.asset.AssetManager.makePath;
+import static org.overrun.real4d.client.gl.GLStateMgr.*;
 
 /**
  * @author squid233
@@ -58,8 +59,8 @@ public class TextRenderer {
     }
 
     public static void loadFont() {
-        int id = Textures.gen();
-        Textures.bind2D(id);
+        int id = glGenTextures();
+        bindTexture2D(id);
         ids[0] = id;
         var cl = TextRenderer.class.getClassLoader();
         try (var stack = MemoryStack.stackPush()) {
@@ -91,7 +92,7 @@ public class TextRenderer {
             } else {
                 channel = GL_RGBA;
             }
-            Textures.texParameter2D(TexParam.glNearest());
+            TexParam.glNearest().glSet(GL_TEXTURE_2D);
             if (Textures.hasGenMipmap()) {
                 glTexImage2D(GL_TEXTURE_2D,
                     0,
@@ -103,7 +104,7 @@ public class TextRenderer {
                     GL_UNSIGNED_BYTE,
                     data
                 );
-                Textures.genMipmap2D();
+                glGenerateMipmap(GL_TEXTURE_2D);
             } else {
                 gluBuild2DMipmaps(GL_TEXTURE_2D,
                     channel,
@@ -200,14 +201,13 @@ public class TextRenderer {
                                 int x,
                                 int y,
                                 int z) {
-        var b = glGetBoolean(GL_TEXTURE_2D);
-        if (!b) glEnable(GL_TEXTURE_2D);
-        Textures.bind2D(ids[c / 256]);
+        enableTexture2D();
+        bindTexture2D(ids[c / 256]);
         glPushMatrix();
         glTranslatef(x, y, z);
         glCallList(lists + c);
         glPopMatrix();
-        if (!b) glDisable(GL_TEXTURE_2D);
+        disableTexture2D();
     }
 
     public static int getGlyphWidth(char c) {

@@ -14,6 +14,6 @@ public class Main {
         config.width = 854;
         config.height = 480;
         config.title = "Real4D " + Real4D.VERSION;
-        new GameApp(Real4D.INSTANCE, config);
+        new GameApp(Real4D.INSTANCE, config).start();
     }
 }

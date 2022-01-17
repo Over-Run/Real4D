@@ -43,13 +43,13 @@ public class Cube {
     public void addBox(float x0,
                        float y0,
                        float z0,
+                       float x1,
+                       float y1,
+                       float z1,
                        int w,
                        int h,
                        int d) {
         polygons = new Polygon[6];
-        var x1 = x0 + w;
-        var y1 = y0 + h;
-        var z1 = z0 + d;
         // The 1st, 2nd, 3rd, 4th vertex on axis-z 0 or 1
         var z00 = new Vertex(x0, y1, z0, 8, 0);
         var z01 = new Vertex(x0, y0, z0, 8, 8);
@@ -115,6 +115,15 @@ public class Cube {
         );
     }
 
+    public void addBox(float x0,
+                       float y0,
+                       float z0,
+                       int w,
+                       int h,
+                       int d) {
+        addBox(x0, y0, z0, x0 + w, y0 + h, z0 + d, w, h, d);
+    }
+
     public void setPos(float x,
                        float y,
                        float z) {
@@ -130,9 +139,9 @@ public class Cube {
 
         glPushMatrix();
         glTranslatef(x, y, z);
-        glRotated(zRot, 0, 0, 1);
-        glRotated(yRot, 0, 1, 0);
         glRotated(xRot, 1, 0, 0);
+        glRotated(yRot, 0, 1, 0);
+        glRotated(zRot, 0, 0, 1);
         glCallList(list);
         glPopMatrix();
     }

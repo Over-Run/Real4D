@@ -25,10 +25,16 @@ public class Planet {
     private final Block[] blocks;
     private final int[] lightDepths;
     private final List<PlanetListener> listeners = new ArrayList<>();
-    private final Random random = new Random();
+    public final Random random;
+    public final long seed;
     private int unprocessed = 0;
 
-    public Planet(int width, int height, int depth) {
+    public Planet(long seed,
+                  int width,
+                  int height,
+                  int depth) {
+        this.seed = seed;
+        random = new Random(seed);
         this.width = width;
         this.height = height;
         this.depth = depth;
