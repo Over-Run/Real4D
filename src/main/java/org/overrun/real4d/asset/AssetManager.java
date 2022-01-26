@@ -10,4 +10,8 @@ public class AssetManager {
     public static String makePath(Identifier id) {
         return "assets." + id.namespace + "/" + id.path;
     }
+
+    public static String makePath(String id) {
+        return makePath(new Identifier(id));
+    }
 }

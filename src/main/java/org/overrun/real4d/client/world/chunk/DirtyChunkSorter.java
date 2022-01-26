@@ -1,7 +1,6 @@
 package org.overrun.real4d.client.world.chunk;
 
 import org.overrun.real4d.client.Frustum;
-import org.overrun.real4d.client.world.chunk.Chunk;
 import org.overrun.real4d.world.entity.Player;
 
 import java.util.Comparator;

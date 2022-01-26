@@ -15,6 +15,11 @@ public class Main {
         if (!glfwInit()) {
             throw new IllegalStateException("Unable to initialize GLFW");
         }
-        Real4D.INSTANCE.start();
+        Real4D.getInstance().init();
+        glfwTerminate();
+        var cb = glfwSetErrorCallback(null);
+        if (cb != null) {
+            cb.free();
+        }
     }
 }

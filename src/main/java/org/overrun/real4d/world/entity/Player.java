@@ -1,11 +1,13 @@
 package org.overrun.real4d.world.entity;
 
 import org.overrun.real4d.client.Camera;
+import org.overrun.real4d.client.Real4D;
 import org.overrun.real4d.world.block.Block;
 import org.overrun.real4d.world.block.Blocks;
 import org.overrun.real4d.world.planet.Planet;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.overrun.real4d.client.input.Input.keyPressed;
 
 /**
  * @author squid233
@@ -14,6 +16,7 @@ import static org.lwjgl.glfw.GLFW.*;
 public class Player extends Entity {
     public final Block[] hotBar = new Block[10];
     public final Camera camera = new Camera();
+    public final Real4D client = Real4D.getInstance();
     public int select = 0;
     public boolean isSneaking;
     public boolean isRunning;
@@ -46,26 +49,26 @@ public class Player extends Entity {
         super.tick();
         camera.prevPos.set(camera.pos);
         float xa = 0, za = 0;
-        if (client.input.keyPressed(GLFW_KEY_R)) {
+        if (keyPressed(GLFW_KEY_R)) {
             resetPos();
         }
-        if (client.input.keyPressed(GLFW_KEY_W)) {
+        if (keyPressed(GLFW_KEY_W)) {
             --za;
         }
-        if (client.input.keyPressed(GLFW_KEY_S)) {
+        if (keyPressed(GLFW_KEY_S)) {
             ++za;
         }
-        if (client.input.keyPressed(GLFW_KEY_A)) {
+        if (keyPressed(GLFW_KEY_A)) {
             --xa;
         }
-        if (client.input.keyPressed(GLFW_KEY_D)) {
+        if (keyPressed(GLFW_KEY_D)) {
             ++xa;
         }
-        if (client.input.keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
+        if (keyPressed(GLFW_KEY_SPACE)/*todo && onGround*/) {
             dPos.y = 0.5f;
         }
-        if (client.input.keyPressed(GLFW_KEY_LEFT_SHIFT)
-            || client.input.keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
+        if (keyPressed(GLFW_KEY_LEFT_SHIFT)
+            || keyPressed(GLFW_KEY_RIGHT_SHIFT)) {
             isSneaking = true;
             bbHeight = 1.5f;
             eyeHeight = 1.32f;
@@ -74,8 +77,8 @@ public class Player extends Entity {
             bbHeight = 1.8f;
             eyeHeight = 1.62f;
         }
-        isRunning = (client.input.keyPressed(GLFW_KEY_LEFT_CONTROL)
-            || client.input.keyPressed(GLFW_KEY_RIGHT_CONTROL))
+        isRunning = (keyPressed(GLFW_KEY_LEFT_CONTROL)
+            || keyPressed(GLFW_KEY_RIGHT_CONTROL))
             && (xa * xa + za * za >= 0.01f);
         float speed;
         if (onGround) {

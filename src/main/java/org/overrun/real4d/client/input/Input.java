@@ -10,7 +10,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
  * @since 0.1.0
  */
 public class Input {
-    public int mouseX, mouseY, deltaMX, deltaMY;
+    public static int mouseX, mouseY, deltaMX, deltaMY;
 
     /**
      * Is key pressed
@@ -18,8 +18,8 @@ public class Input {
      * @param key The key
      * @return key pressed
      */
-    public boolean keyPressed(final int key) {
-        return Real4D.INSTANCE.window.key(key) == GLFW_PRESS;
+    public static boolean keyPressed(final int key) {
+        return Real4D.getInstance().handle.key(key) == GLFW_PRESS;
     }
 
     /**
@@ -27,10 +27,9 @@ public class Input {
      *
      * @param key The key
      * @return key released
-     * @since 2.0.0
      */
-    public boolean keyReleased(final int key) {
-        return Real4D.INSTANCE.window.key(key) == GLFW_RELEASE;
+    public static boolean keyReleased(final int key) {
+        return Real4D.getInstance().handle.key(key) == GLFW_RELEASE;
     }
 
     /**
@@ -39,8 +38,8 @@ public class Input {
      * @param button The mouse button
      * @return mouse button pressed
      */
-    public boolean mousePressed(final int button) {
-        return Real4D.INSTANCE.window.mouse(button) == GLFW_PRESS;
+    public static boolean mousePressed(final int button) {
+        return Real4D.getInstance().handle.mouse(button) == GLFW_PRESS;
     }
 
     /**
@@ -49,23 +48,23 @@ public class Input {
      * @param button The mouse button
      * @return mouse button released
      */
-    public boolean mouseReleased(final int button) {
-        return Real4D.INSTANCE.window.mouse(button) == GLFW_RELEASE;
+    public static boolean mouseReleased(final int button) {
+        return Real4D.getInstance().handle.mouse(button) == GLFW_RELEASE;
     }
 
-    public int getMouseX() {
+    public static int getMouseX() {
         return mouseX;
     }
 
-    public int getMouseY() {
+    public static int getMouseY() {
         return mouseY;
     }
 
-    public int getDeltaMX() {
+    public static int getDeltaMX() {
         return deltaMX;
     }
 
-    public int getDeltaMY() {
+    public static int getDeltaMY() {
         return deltaMY;
     }
 }

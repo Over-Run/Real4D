@@ -1,27 +1,32 @@
 package org.overrun.real4d.client;
 
 import org.joml.FrustumIntersection;
-import org.overrun.real4d.client.gl.GLMatrix;
 import org.overrun.real4d.world.phys.AABBox;
+
+import static org.overrun.real4d.client.gl.GLMatrix.modelView;
+import static org.overrun.real4d.client.gl.GLMatrix.proj;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public class Frustum {
-    private static final Frustum instance = new Frustum();
+    private static final Frustum INSTANCE = new Frustum();
     public final FrustumIntersection frustum = new FrustumIntersection();
 
     private Frustum() {
     }
 
     public static Frustum getFrustum() {
-        instance.calculateFrustum();
-        return instance;
+        INSTANCE.calculateFrustum();
+        return INSTANCE;
     }
 
     private void calculateFrustum() {
-        frustum.set(GLMatrix.getProjectionl().mul(GLMatrix.getModelviewl()));
+        frustum.set(
+            proj.pushMatrix().mul(modelView)
+        );
+        proj.popMatrix();
     }
 
     public boolean pointInFrustum(float x,
